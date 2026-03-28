@@ -1,5 +1,6 @@
 package com.chatfolio.domain.usecase
 
+import com.chatfolio.data.repository.PortfolioRepository
 import com.chatfolio.domain.port.ChatMessage
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmTool
@@ -35,7 +36,8 @@ sealed class ChatInteractionResult {
  * and translating its raw responses into business outcomes.
  */
 class ChatBotAgent @Inject constructor(
-    private val llmEngine: LlmEngine
+    private val llmEngine: LlmEngine,
+    private val portfolioRepository: PortfolioRepository
 ) {
 
     private val addTransactionTool = LlmTool(
@@ -132,6 +134,16 @@ class ChatBotAgent @Inject constructor(
 
         } catch (e: Exception) {
             return ChatInteractionResult.Error(e.message ?: "Unknown error occurred")
+        }
+    }
+
+    /**
+     * Persists a confirmed list of trades to the local database.
+     * This keeps the full trade lifecycle (parse → confirm → persist) owned by the domain layer.
+     */
+    suspend fun persistTrades(trades: List<ChatInteractionResult.ParsedTrade>) {
+        trades.forEach { trade ->
+            portfolioRepository.addTransaction(trade.ticker, trade.action, trade.shares, trade.price)
         }
     }
 }

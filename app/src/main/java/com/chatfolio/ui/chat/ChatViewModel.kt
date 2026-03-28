@@ -112,20 +112,15 @@ class ChatViewModel @Inject constructor(
     }
 
     fun saveTransactions(trades: List<com.chatfolio.domain.usecase.ChatInteractionResult.ParsedTrade>) {
-        android.util.Log.e("ChatFolio", "-> saveTransactions invoked for ${trades.size} trades")
         viewModelScope.launch {
             try {
-                android.util.Log.e("ChatFolio", "-> Starting DB batch insert...")
-                trades.forEach { trade ->
-                    portfolioRepository.addTransaction(trade.ticker, trade.action, trade.shares, trade.price)
-                }
-                android.util.Log.e("ChatFolio", "-> DB batch insert finished!")
-                
+                // Delegate to the domain layer — ChatBotAgent owns the full trade lifecycle
+                chatBotAgent.persistTrades(trades)
+
                 val newMessages = _uiState.value.messages.toMutableList()
                 newMessages.add(ChatContent.Text(markdown = "✅ Successfully saved **${trades.size}** trades.", isUser = false))
                 _uiState.value = _uiState.value.copy(messages = newMessages)
             } catch (e: Exception) {
-                android.util.Log.e("ChatFolio", "-> ERROR caught: ${e.message}", e)
                 val errorMessages = _uiState.value.messages.toMutableList()
                 errorMessages.add(ChatContent.Text(markdown = "Error saving transactions: ${e.message}", isUser = false))
                 _uiState.value = _uiState.value.copy(messages = errorMessages)
