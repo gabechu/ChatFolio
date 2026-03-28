@@ -40,8 +40,15 @@ class ChatBotAgent @Inject constructor(
     private val portfolioRepository: PortfolioRepository
 ) {
 
+    companion object {
+        private const val TOOL_ADD_TRANSACTION    = "addTransaction"
+        private const val TOOL_SHOW_PORTFOLIO     = "showPortfolio"
+        private const val TOOL_DELETE_TRANSACTION = "deleteTransaction"
+        private const val TOOL_UPDATE_TRANSACTION = "updateTransaction"
+    }
+
     private val addTransactionTool = LlmTool(
-        name = "addTransaction",
+        name = TOOL_ADD_TRANSACTION,
         description = "Extracts a financial transaction. IMPORTANT: If the user mentions multiple trades, you MUST call this tool multiple times in parallel to extract every single trade.",
         parameters = listOf(
             LlmToolParameter("ticker", "STRING", "The stock ticker symbol (e.g. AAPL)"),
@@ -52,13 +59,13 @@ class ChatBotAgent @Inject constructor(
     )
 
     private val showPortfolioTool = LlmTool(
-        name = "showPortfolio",
+        name = TOOL_SHOW_PORTFOLIO,
         description = "Displays the user's current stock holdings and portfolio summary.",
         parameters = emptyList()
     )
 
     private val deleteTransactionTool = LlmTool(
-        name = "deleteTransaction",
+        name = TOOL_DELETE_TRANSACTION,
         description = "Deletes the most recent transaction matching a ticker and action (BUY/SELL)",
         parameters = listOf(
             LlmToolParameter("ticker", "STRING", "The stock ticker to delete"),
@@ -67,7 +74,7 @@ class ChatBotAgent @Inject constructor(
     )
 
     private val updateTransactionTool = LlmTool(
-        name = "updateTransaction",
+        name = TOOL_UPDATE_TRANSACTION,
         description = "Updates the shares and price of the most recent transaction for a ticker",
         parameters = listOf(
             LlmToolParameter("ticker", "STRING", "The stock ticker to update"),
@@ -93,7 +100,7 @@ class ChatBotAgent @Inject constructor(
             // See if the AI tried to invoke a tool
             val toolCalls = response.toolCalls
             
-            val transactionCalls = toolCalls?.filter { it.name == "addTransaction" }
+            val transactionCalls = toolCalls?.filter { it.name == TOOL_ADD_TRANSACTION }
             if (!transactionCalls.isNullOrEmpty()) {
                 val parsedTrades = transactionCalls.map {
                     ChatInteractionResult.ParsedTrade(
@@ -106,12 +113,12 @@ class ChatBotAgent @Inject constructor(
                 return ChatInteractionResult.ParsedTransactions(parsedTrades)
             }
 
-            val showPortfolioCall = toolCalls?.firstOrNull { it.name == "showPortfolio" }
+            val showPortfolioCall = toolCalls?.firstOrNull { it.name == TOOL_SHOW_PORTFOLIO }
             if (showPortfolioCall != null) {
                 return ChatInteractionResult.ShowPortfolio
             }
 
-            val deleteCall = toolCalls?.firstOrNull { it.name == "deleteTransaction" }
+            val deleteCall = toolCalls?.firstOrNull { it.name == TOOL_DELETE_TRANSACTION }
             if (deleteCall != null) {
                 return ChatInteractionResult.DeleteTransaction(
                     ticker = deleteCall.arguments["ticker"]?.toString() ?: "UNKNOWN",
@@ -119,7 +126,7 @@ class ChatBotAgent @Inject constructor(
                 )
             }
 
-            val updateCall = toolCalls?.firstOrNull { it.name == "updateTransaction" }
+            val updateCall = toolCalls?.firstOrNull { it.name == TOOL_UPDATE_TRANSACTION }
             if (updateCall != null) {
                 return ChatInteractionResult.UpdateTransaction(
                     ticker = updateCall.arguments["ticker"]?.toString() ?: "UNKNOWN",
