@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    kotlin("plugin.serialization") version "1.9.23"
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     id("kotlin-parcelize")
@@ -79,7 +80,11 @@ dependencies {
     ksp("com.google.dagger:hilt-compiler:2.51")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // Removed Ktor dependencies until Phase 3 (Yahoo Finance)
+    // Ktor dependencies
+    val ktorVersion = "2.3.9"
+    implementation("io.ktor:ktor-client-android:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
     // Firebase API Logic (Gemini)
     // Google AI Client (BYOK Architecture)
@@ -98,6 +103,7 @@ dependencies {
     // Security (for BYOK keys)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
     testImplementation("com.google.truth:truth:1.4.2")
     testImplementation("io.mockk:mockk:1.13.10")
     testImplementation("app.cash.turbine:turbine:1.1.0")
