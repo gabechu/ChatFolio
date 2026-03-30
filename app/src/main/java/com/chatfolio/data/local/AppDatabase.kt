@@ -22,7 +22,7 @@ import com.chatfolio.data.local.entity.TransactionEntity
         DividendEntity::class,
         PriceCacheEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -44,6 +44,22 @@ abstract class AppDatabase : RoomDatabase() {
                         "`closePrice` REAL NOT NULL, " +
                         "`currency` TEXT NOT NULL, " +
                         "PRIMARY KEY(`ticker`, `tradingDate`))"
+                )
+            }
+        }
+
+        // Simplifies primary key from (ticker, tradingDate) to just ticker.
+        // One row per ticker, always overwritten to the latest Yahoo price.
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `price_cache`")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `price_cache` (" +
+                        "`ticker` TEXT NOT NULL, " +
+                        "`tradingDate` TEXT NOT NULL, " +
+                        "`closePrice` REAL NOT NULL, " +
+                        "`currency` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`ticker`))"
                 )
             }
         }
