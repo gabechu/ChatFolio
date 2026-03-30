@@ -83,7 +83,7 @@ dependencies {
 
     // Firebase API Logic (Gemini)
     // Google AI Client (BYOK Architecture)
-    implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
+
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
     // Vico Charts
