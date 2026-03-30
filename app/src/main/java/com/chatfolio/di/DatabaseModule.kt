@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.chatfolio.data.local.AppDatabase
 import com.chatfolio.data.local.dao.HoldingDao
 import com.chatfolio.data.local.dao.PortfolioDao
+import com.chatfolio.data.local.dao.PriceCacheDao
 import com.chatfolio.data.local.dao.TransactionDao
 import dagger.Module
 import dagger.Provides
@@ -35,4 +36,7 @@ object DatabaseModule {
 
     @Provides
     fun provideTransactionDao(database: AppDatabase): TransactionDao = database.transactionDao()
+
+    @Provides
+    fun providePriceCacheDao(database: AppDatabase): PriceCacheDao = database.priceCacheDao()
 }
