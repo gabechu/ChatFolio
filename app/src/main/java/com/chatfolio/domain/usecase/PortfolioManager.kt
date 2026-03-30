@@ -10,7 +10,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PortfolioManagerUseCase @Inject constructor(
+class PortfolioManager @Inject constructor(
     private val portfolioDao: PortfolioDao,
     private val holdingDao: HoldingDao,
     private val priceCacheDao: PriceCacheDao,
@@ -39,7 +39,6 @@ class PortfolioManagerUseCase @Inject constructor(
                         val meta = result.getOrNull()!!
                         val fetchedPrice = meta.regularMarketPrice ?: 0.0
                         val fetchedCurrency = meta.currency ?: "USD"
-                        // Persist into cache
                         priceCacheDao.upsertPrice(
                             PriceCacheEntity(
                                 ticker = holding.ticker,
