@@ -10,5 +10,5 @@ data class HoldingWithPrice(
     val marketValue: Double,
     val gainLoss: Double,
     val gainLossPercent: Double,
-    val priceAsOf: Long  // epoch millis of the cached price
+    val priceAsOf: String  // ISO date string, e.g. "2026-03-27"
 )

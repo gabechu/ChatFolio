@@ -9,7 +9,7 @@ import com.chatfolio.data.local.entity.PriceCacheEntity
 @Dao
 interface PriceCacheDao {
 
-    @Query("SELECT * FROM price_cache WHERE ticker = :ticker ORDER BY date DESC LIMIT 1")
+    @Query("SELECT * FROM price_cache WHERE ticker = :ticker ORDER BY tradingDate DESC LIMIT 1")
     suspend fun getLatestPrice(ticker: String): PriceCacheEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

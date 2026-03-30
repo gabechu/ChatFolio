@@ -23,6 +23,7 @@ data class Meta(
     val currency: String? = null,
     val symbol: String? = null,
     val regularMarketPrice: Double? = null,
+    val regularMarketTime: Long? = null,
     val previousClose: Double? = null
 )
 
