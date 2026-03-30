@@ -25,9 +25,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "chatfolio_db"
-        )
-            .fallbackToDestructiveMigration() // TODO: replace with real migrations before production release
-            .build()
+        ).build()
     }
 
     @Provides
