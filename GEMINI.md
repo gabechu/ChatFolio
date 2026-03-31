@@ -14,6 +14,14 @@ The following rules MUST be strictly adhered to by any LLM or AI agent interacti
 2. **Require Consent to Merge**: NEVER merge any branch into `main` without explicit, unambiguous consent from the user. Even if a PR is created, wait for the user to approve and merge it, or wait for them to explicitly command you to do so.
 3. **Feature Isolation**: ALWAYS develop new features, bug fixes, or documentation updates in a completely new, isolated branch (e.g., `wchu/feature-name`).
 4. **Test-Driven Development (TDD)**: ALWAYS use Test-Driven Development. When adding a new feature, you MUST write corresponding tests (unit, integration, or UI) and verify them. Untested features are considered incomplete.
+5. **Continuous Integration**: EVERY pull request is automatically verified by GitHub Actions. You MUST ensure `ktlintCheck` and `testDebugUnitTest` pass before requesting a review.
+
+## Continuous Integration (GitHub Actions)
+
+ChatFolio uses GitHub Actions for automated quality control. The workflow is located in `.github/workflows/ci.yml` and performs:
+- **Linting**: Enforces Kotlin style via `ktlint`.
+- **Unit Tests**: Runs all JVM unit tests.
+- **Build Verification**: Ensures the debug APK assembles correctly.
 
 ## Package Structure
 
@@ -96,9 +104,10 @@ com.chatfolio
 ## Running the Project
 
 ```bash
-./gradlew assembleDebug          # Build debug APK
+./gradlew ktlintCheck            # Check Kotlin code style
+./gradlew ktlintFormat           # Auto-fix most style violations
 ./gradlew testDebugUnitTest      # Run all unit tests
-./gradlew testDebugUnitTest --tests "com.chatfolio.SomeTest"  # Run specific test
+./gradlew assembleDebug          # Build debug APK
 ```
 
 ## Testing Guidelines

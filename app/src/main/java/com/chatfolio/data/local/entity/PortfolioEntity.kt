@@ -9,5 +9,5 @@ data class PortfolioEntity(
     val id: Int = 0,
     val name: String,
     val baseCurrency: String = "AUD",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
 )

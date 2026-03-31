@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 data class PriceCacheEntity(
     @PrimaryKey
     val ticker: String,
-    val tradingDate: String, // ISO date from Yahoo's regularMarketTime e.g. "2026-03-27"
+    // ISO date from Yahoo's regularMarketTime e.g. "2026-03-27"
+    val tradingDate: String,
     val closePrice: Double,
-    val currency: String
+    val currency: String,
 )

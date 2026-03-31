@@ -18,14 +18,17 @@ import com.chatfolio.data.local.entity.TransactionEntity
         HoldingEntity::class,
         TransactionEntity::class,
         DividendEntity::class,
-        PriceCacheEntity::class
+        PriceCacheEntity::class,
     ],
     version = 1,
-    exportSchema = false
+    exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun portfolioDao(): PortfolioDao
+
     abstract fun holdingDao(): HoldingDao
+
     abstract fun transactionDao(): TransactionDao
+
     abstract fun priceCacheDao(): PriceCacheDao
 }

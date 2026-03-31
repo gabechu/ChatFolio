@@ -15,15 +15,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class YahooFinanceClientTest {
-
-    private fun createMockClient(responseContent: String, status: HttpStatusCode = HttpStatusCode.OK): HttpClient {
-        val mockEngine = MockEngine { request ->
-            respond(
-                content = responseContent,
-                status = status,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
-            )
-        }
+    private fun createMockClient(
+        responseContent: String,
+        status: HttpStatusCode = HttpStatusCode.OK,
+    ): HttpClient {
+        val mockEngine =
+            MockEngine { request ->
+                respond(
+                    content = responseContent,
+                    status = status,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
         return HttpClient(mockEngine) {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
@@ -32,56 +35,60 @@ class YahooFinanceClientTest {
     }
 
     @Test
-    fun fetchSymbolData_successfulResponse_returnsParsedMeta() = runTest {
-        val sampleJson = """
-            {
-              "chart": {
-                "result": [
-                  {
-                    "meta": {
-                      "currency": "USD",
-                      "symbol": "AAPL",
-                      "regularMarketPrice": 150.5,
-                      "previousClose": 149.0
-                    }
+    fun fetchSymbolData_successfulResponse_returnsParsedMeta() =
+        runTest {
+            val sampleJson =
+                """
+                {
+                  "chart": {
+                    "result": [
+                      {
+                        "meta": {
+                          "currency": "USD",
+                          "symbol": "AAPL",
+                          "regularMarketPrice": 150.5,
+                          "previousClose": 149.0
+                        }
+                      }
+                    ],
+                    "error": null
                   }
-                ],
-                "error": null
-              }
-            }
-        """.trimIndent()
+                }
+                """.trimIndent()
 
-        val client = YahooFinanceClient(createMockClient(sampleJson))
-        
-        val result = client.fetchSymbolData("AAPL")
-        
-        assertTrue(result.isSuccess)
-        val meta = result.getOrNull()!!
-        assertEquals("AAPL", meta.symbol)
-        assertEquals("USD", meta.currency)
-        assertEquals(150.5, meta.regularMarketPrice!!, 0.0)
-    }
+            val client = YahooFinanceClient(createMockClient(sampleJson))
+
+            val result = client.fetchSymbolData("AAPL")
+
+            assertTrue(result.isSuccess)
+            val meta = result.getOrNull()!!
+            assertEquals("AAPL", meta.symbol)
+            assertEquals("USD", meta.currency)
+            assertEquals(150.5, meta.regularMarketPrice!!, 0.0)
+        }
 
     @Test
-    fun fetchSymbolData_apiError_returnsFailure() = runTest {
-        val sampleErrorJson = """
-            {
-              "chart": {
-                "result": null,
-                "error": {
-                  "code": "Not Found",
-                  "description": "No data found, symbol may be delisted"
+    fun fetchSymbolData_apiError_returnsFailure() =
+        runTest {
+            val sampleErrorJson =
+                """
+                {
+                  "chart": {
+                    "result": null,
+                    "error": {
+                      "code": "Not Found",
+                      "description": "No data found, symbol may be delisted"
+                    }
+                  }
                 }
-              }
-            }
-        """.trimIndent()
+                """.trimIndent()
 
-        val client = YahooFinanceClient(createMockClient(sampleErrorJson))
-        
-        val result = client.fetchSymbolData("INVALID")
-        
-        assertTrue(result.isFailure)
-        val exception = result.exceptionOrNull()
-        assertTrue(exception?.message?.contains("Not Found") == true)
-    }
+            val client = YahooFinanceClient(createMockClient(sampleErrorJson))
+
+            val result = client.fetchSymbolData("INVALID")
+
+            assertTrue(result.isFailure)
+            val exception = result.exceptionOrNull()
+            assertTrue(exception?.message?.contains("Not Found") == true)
+        }
 }

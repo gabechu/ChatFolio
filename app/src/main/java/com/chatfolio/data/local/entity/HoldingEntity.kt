@@ -12,10 +12,10 @@ import androidx.room.PrimaryKey
             entity = PortfolioEntity::class,
             parentColumns = ["id"],
             childColumns = ["portfolioId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("portfolioId")]
+    indices = [Index("portfolioId")],
 )
 data class HoldingEntity(
     @PrimaryKey(autoGenerate = true)
@@ -24,5 +24,5 @@ data class HoldingEntity(
     val ticker: String,
     val market: String,
     val totalShares: Double,
-    val costBase: Double
+    val costBase: Double,
 )

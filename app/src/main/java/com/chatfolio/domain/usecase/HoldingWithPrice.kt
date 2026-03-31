@@ -10,5 +10,6 @@ data class HoldingWithPrice(
     val marketValue: Double,
     val gainLoss: Double,
     val gainLossPercent: Double,
-    val priceAsOf: String  // ISO date string, e.g. "2026-03-27"
+    // ISO date string, e.g. "2026-03-27"
+    val priceAsOf: String,
 )

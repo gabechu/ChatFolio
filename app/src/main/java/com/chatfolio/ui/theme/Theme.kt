@@ -16,33 +16,36 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF81C784),
-    secondary = Color(0xFF64B5F6),
-    tertiary = Color(0xFFE57373)
-)
+private val DarkColorScheme =
+    darkColorScheme(
+        primary = Color(0xFF81C784),
+        secondary = Color(0xFF64B5F6),
+        tertiary = Color(0xFFE57373),
+    )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF4CAF50),
-    secondary = Color(0xFF2196F3),
-    tertiary = Color(0xFFF44336)
-)
+private val LightColorScheme =
+    lightColorScheme(
+        primary = Color(0xFF4CAF50),
+        secondary = Color(0xFF2196F3),
+        tertiary = Color(0xFFF44336),
+    )
 
 @Composable
 fun ChatFolioTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val colorScheme =
+        when {
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                val context = LocalContext.current
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
+            darkTheme -> DarkColorScheme
+            else -> LightColorScheme
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -54,6 +57,6 @@ fun ChatFolioTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        content = content
+        content = content,
     )
 }
