@@ -17,3 +17,4 @@ local.properties
 
 # Android app build folder
 /app/build
+.vscode/
