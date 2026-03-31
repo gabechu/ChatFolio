@@ -1,19 +1,30 @@
-*.iml
-.gradle
-/local.properties
-/.idea/
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle
+.gradle/
+/build/
+*/build/
 local.properties
 
-# Android Studio Navigation editor temp files
+# IntelliJ / Android Studio
+*.iml
+/.idea/
 .navigation/
+/captures/
 
-# Android Studio Checkpoints
+# VS Code
+.vscode/
+
+# NDK
+.externalNativeBuild/
+.cxx/
+obj/
+
+# OS-specific
+.DS_Store
+
+# LLM Agent Checkpoints
 /checkpoints/
 
-# Android app build folder
-/app/build
+# Secrets & Keys (ensure they never get committed)
+*.jks
+*.keystore
+google-services.json

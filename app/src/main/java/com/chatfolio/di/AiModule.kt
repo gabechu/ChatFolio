@@ -12,7 +12,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AiModule {
-
     @Provides
     @Singleton
     fun provideLlmEngine(settingsRepository: SettingsRepository): LlmEngine {

@@ -33,7 +33,7 @@ import com.chatfolio.ui.chat.ChatViewModel
 fun ChatFolioApp(viewModel: ChatViewModel = hiltViewModel()) {
     var showSettings by remember { mutableStateOf(false) }
     val currentApiKey by viewModel.apiKey.collectAsState()
-    
+
     // Auto-prompt on first launch
     LaunchedEffect(currentApiKey) {
         if (currentApiKey.isBlank()) {
@@ -49,37 +49,39 @@ fun ChatFolioApp(viewModel: ChatViewModel = hiltViewModel()) {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
+                            contentDescription = "Settings",
                         )
                     }
-                }
+                },
             )
-        }
+        },
     ) { paddingValues ->
         ChatScreen(
             modifier = Modifier.padding(paddingValues),
-            viewModel = viewModel
+            viewModel = viewModel,
         )
-        
+
         if (showSettings) {
             var tempKey by remember { mutableStateOf(currentApiKey) }
             AlertDialog(
-                onDismissRequest = { 
-                    if (currentApiKey.isNotBlank()) showSettings = false 
+                onDismissRequest = {
+                    if (currentApiKey.isNotBlank()) showSettings = false
                 },
                 title = { Text("API Configuration") },
                 text = {
                     Column {
                         Text(
-                            text = "ChatFolio requires a Google Gemini API Key to run its AI engine securely on your device.\n\nYour key is encrypted locally and never leaves your phone.", 
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            text =
+                                "ChatFolio requires a Google Gemini API Key to run its AI engine securely on your device.\n\n" +
+                                    "Your key is encrypted locally and never leaves your phone.",
+                            modifier = Modifier.padding(bottom = 16.dp),
                         )
                         OutlinedTextField(
                             value = tempKey,
                             onValueChange = { tempKey = it },
                             label = { Text("Gemini API Key") },
                             singleLine = true,
-                            visualTransformation = PasswordVisualTransformation()
+                            visualTransformation = PasswordVisualTransformation(),
                         )
                     }
                 },
@@ -88,8 +90,8 @@ fun ChatFolioApp(viewModel: ChatViewModel = hiltViewModel()) {
                         onClick = {
                             viewModel.saveApiKey(tempKey)
                             showSettings = false
-                        }, 
-                        enabled = tempKey.isNotBlank()
+                        },
+                        enabled = tempKey.isNotBlank(),
                     ) {
                         Text("Save Key")
                     }
@@ -100,7 +102,7 @@ fun ChatFolioApp(viewModel: ChatViewModel = hiltViewModel()) {
                             Text("Cancel")
                         }
                     }
-                }
+                },
             )
         }
     }

@@ -6,16 +6,16 @@ package com.chatfolio.ui.chat
 sealed class ChatContent {
     data class Text(
         val markdown: String,
-        val isUser: Boolean
+        val isUser: Boolean,
     ) : ChatContent()
 
     data class PortfolioSummaryCard(
         val totalValue: Double,
         val dailyChangeValue: Double,
-        val dailyChangePercent: Double
+        val dailyChangePercent: Double,
     ) : ChatContent()
 
     data class BatchTransactionConfirmCard(
-        val trades: List<com.chatfolio.domain.usecase.ChatInteractionResult.ParsedTrade>
+        val trades: List<com.chatfolio.domain.usecase.ChatInteractionResult.ParsedTrade>,
     ) : ChatContent()
 }

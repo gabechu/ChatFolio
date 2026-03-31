@@ -12,19 +12,21 @@ import androidx.room.PrimaryKey
             entity = HoldingEntity::class,
             parentColumns = ["id"],
             childColumns = ["holdingId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("holdingId")]
+    indices = [Index("holdingId")],
 )
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val holdingId: Int,
-    val type: String, // "BUY", "SELL"
+    // "BUY", "SELL"
+    val type: String,
     val date: Long,
     val shares: Double,
     val pricePerShare: Double,
     val totalValue: Double,
-    val source: String // "CHAT", "CSV", "API"
+    // "CHAT", "CSV", "API"
+    val source: String,
 )

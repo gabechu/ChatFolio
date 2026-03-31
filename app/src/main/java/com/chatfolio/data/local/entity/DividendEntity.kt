@@ -12,10 +12,10 @@ import androidx.room.PrimaryKey
             entity = HoldingEntity::class,
             parentColumns = ["id"],
             childColumns = ["holdingId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("holdingId")]
+    indices = [Index("holdingId")],
 )
 data class DividendEntity(
     @PrimaryKey(autoGenerate = true)
@@ -25,5 +25,6 @@ data class DividendEntity(
     val payDate: Long,
     val amountPerShare: Double,
     val totalAmount: Double,
-    val source: String // "YAHOO", "CHAT"
+    // "YAHOO", "CHAT"
+    val source: String,
 )

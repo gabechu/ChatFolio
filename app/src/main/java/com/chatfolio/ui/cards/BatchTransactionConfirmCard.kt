@@ -22,56 +22,60 @@ import com.chatfolio.ui.chat.ChatContent
 fun BatchTransactionConfirmCard(
     content: ChatContent.BatchTransactionConfirmCard,
     onSave: () -> Unit = {},
-    onCancel: () -> Unit = {}
+    onCancel: () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Pending Trades (${content.trades.size})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            
+
             content.trades.forEach { trade ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     val isBuy = trade.action.equals("BUY", ignoreCase = true)
                     val actionColor = if (isBuy) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    
+
                     Text(
                         text = "${if (isBuy) "🟢 BUY" else "🔴 SELL"} ${trade.shares} ${trade.ticker}",
                         fontWeight = FontWeight.Bold,
-                        color = actionColor
+                        color = actionColor,
                     )
                     Text(text = "@ $${trade.price}")
                 }
             }
-            
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            
+
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
             ) {
                 OutlinedButton(
                     onClick = onCancel,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 8.dp),
                 ) {
                     Text("Cancel")
                 }

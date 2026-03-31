@@ -31,32 +31,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chatfolio.ui.cards.PortfolioSummaryCard
 import com.chatfolio.ui.cards.BatchTransactionConfirmCard
+import com.chatfolio.ui.cards.PortfolioSummaryCard
 
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
-    viewModel: ChatViewModel = hiltViewModel()
+    viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Column(modifier = modifier.fillMaxSize()) {
         // Message List
         LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            reverseLayout = false, // Messages flow top to bottom
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            // Messages flow top to bottom
+            reverseLayout = false,
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         ) {
             items(uiState.messages) { content ->
                 when (content) {
                     is ChatContent.Text -> {
                         ChatBubble(
                             text = content.markdown,
-                            isUser = content.isUser
+                            isUser = content.isUser,
                         )
                     }
                     is ChatContent.PortfolioSummaryCard -> {
@@ -65,14 +67,14 @@ fun ChatScreen(
                     is ChatContent.BatchTransactionConfirmCard -> {
                         BatchTransactionConfirmCard(
                             content = content,
-                            onSave = { 
-                                viewModel.saveTransactions(content.trades) 
-                            }
+                            onSave = {
+                                viewModel.saveTransactions(content.trades)
+                            },
                         )
                     }
                 }
             }
-            
+
             if (uiState.isTyping) {
                 item {
                     TypingIndicatorBubble()
@@ -83,31 +85,36 @@ fun ChatScreen(
         // Input Field
         ChatInputBar(
             onSendMessage = { text -> viewModel.sendMessage(text) },
-            isTyping = uiState.isTyping
+            isTyping = uiState.isTyping,
         )
     }
 }
 
 @Composable
-fun ChatBubble(text: String, isUser: Boolean) {
+fun ChatBubble(
+    text: String,
+    isUser: Boolean,
+) {
     val bubbleColor = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
     val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
-    val shape = if (isUser) {
-        RoundedCornerShape(16.dp, 16.dp, 0.dp, 16.dp)
-    } else {
-        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
-    }
+    val shape =
+        if (isUser) {
+            RoundedCornerShape(16.dp, 16.dp, 0.dp, 16.dp)
+        } else {
+            RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
+        }
 
     Box(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = alignment
+        contentAlignment = alignment,
     ) {
         Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .clip(shape)
-                .background(bubbleColor)
-                .padding(12.dp)
+            modifier =
+                Modifier
+                    .widthIn(max = 280.dp)
+                    .clip(shape)
+                    .background(bubbleColor)
+                    .padding(12.dp),
         ) {
             Text(text = text)
         }
@@ -118,13 +125,14 @@ fun ChatBubble(text: String, isUser: Boolean) {
 fun TypingIndicatorBubble() {
     Box(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.CenterStart,
     ) {
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(12.dp)
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(12.dp),
         ) {
             CircularProgressIndicator(modifier = Modifier.padding(4.dp), strokeWidth = 2.dp)
         }
@@ -134,15 +142,16 @@ fun TypingIndicatorBubble() {
 @Composable
 fun ChatInputBar(
     onSendMessage: (String) -> Unit,
-    isTyping: Boolean
+    isTyping: Boolean,
 ) {
     var text by remember { mutableStateOf("") }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
             value = text,
@@ -150,9 +159,9 @@ fun ChatInputBar(
             modifier = Modifier.weight(1f),
             placeholder = { Text("Type a message...") },
             maxLines = 3,
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
         )
-        
+
         IconButton(
             onClick = {
                 if (text.isNotBlank()) {
@@ -160,12 +169,19 @@ fun ChatInputBar(
                     text = ""
                 }
             },
-            enabled = text.isNotBlank() && !isTyping
+            enabled = text.isNotBlank() && !isTyping,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
                 contentDescription = "Send Message",
-                tint = if (text.isNotBlank() && !isTyping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                tint =
+                    if (text.isNotBlank() && !isTyping) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = 0.3f,
+                        )
+                    },
             )
         }
     }
