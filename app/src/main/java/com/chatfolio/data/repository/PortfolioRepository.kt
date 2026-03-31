@@ -1,5 +1,6 @@
 package com.chatfolio.data.repository
 
+import androidx.room.withTransaction
 import com.chatfolio.data.local.dao.HoldingDao
 import com.chatfolio.data.local.dao.PortfolioDao
 import com.chatfolio.data.local.dao.TransactionDao
@@ -12,6 +13,7 @@ import javax.inject.Singleton
 class PortfolioRepository
     @Inject
     constructor(
+        private val db: com.chatfolio.data.local.AppDatabase,
         private val portfolioDao: PortfolioDao,
         private val holdingDao: HoldingDao,
         private val transactionDao: TransactionDao,
@@ -32,98 +34,117 @@ class PortfolioRepository
             action: String,
             shares: Double,
             price: Double,
+            date: Long = System.currentTimeMillis(),
         ) {
-            // 1. Get or create default portfolio
-            var portfolio = portfolioDao.getDefaultPortfolio()
-            if (portfolio == null) {
-                val id = portfolioDao.insertPortfolio(PortfolioEntity(name = "My Portfolio"))
-                portfolio = PortfolioEntity(id = id.toInt(), name = "My Portfolio")
-            }
+            db.withTransaction {
+                // 1. Get or create default portfolio
+                var portfolio = portfolioDao.getDefaultPortfolio()
+                if (portfolio == null) {
+                    val id = portfolioDao.insertPortfolio(PortfolioEntity(name = "My Portfolio"))
+                    portfolio = PortfolioEntity(id = id.toInt(), name = "My Portfolio")
+                }
 
-            // 2. Get or create holding
-            val upperTicker = ticker.uppercase()
-            var holding = holdingDao.getHoldingByTicker(portfolio.id, upperTicker)
+                // 2. Get or create holding
+                val upperTicker = ticker.uppercase()
+                var holding = holdingDao.getHoldingByTicker(portfolio.id, upperTicker)
 
-            if (holding == null) {
-                val hId =
+                if (holding == null) {
                     holdingDao.insertHolding(
                         com.chatfolio.data.local.entity.HoldingEntity(
                             portfolioId = portfolio.id,
                             ticker = upperTicker,
-                            // Defaulting to US for now
                             market = "US",
                             totalShares = 0.0,
                             costBase = 0.0,
+                            realizedProfit = 0.0,
                         ),
                     )
-                holding =
-                    com.chatfolio.data.local.entity.HoldingEntity(
-                        id = hId.toInt(),
-                        portfolioId = portfolio.id,
-                        ticker = upperTicker,
-                        market = "US",
-                        totalShares = 0.0,
-                        costBase = 0.0,
-                    )
+                    holding = holdingDao.getHoldingByTicker(portfolio.id, upperTicker) ?: return@withTransaction
+                }
+
+                val isBuy = action.equals("BUY", ignoreCase = true)
+                // 3. Insert transaction record
+                transactionDao.insertTransaction(
+                    com.chatfolio.data.local.entity.TransactionEntity(
+                        holdingId = holding.id,
+                        type = if (isBuy) "BUY" else "SELL",
+                        date = date,
+                        shares = shares,
+                        pricePerShare = price,
+                        totalValue = shares * price,
+                        source = "CHAT",
+                    ),
+                )
+
+                // 4. Update holding via Ledger Replay
+                recalculateHoldingState(holding)
             }
-
-            // 3. Update holding totals
-            val isBuy = action.equals("BUY", ignoreCase = true)
-            val shareDelta = if (isBuy) shares else -shares
-            val newTotalShares = holding.totalShares + shareDelta
-
-            // Simplified cost base calculation for MVP
-            val valueDelta = if (isBuy) (shares * price) else -(shares * price)
-            val newCostBase = holding.costBase + valueDelta
-
-            holdingDao.updateHolding(holding.copy(totalShares = newTotalShares, costBase = newCostBase))
-
-            // 4. Insert transaction record
-            transactionDao.insertTransaction(
-                com.chatfolio.data.local.entity.TransactionEntity(
-                    holdingId = holding.id,
-                    type = if (isBuy) "BUY" else "SELL",
-                    date = System.currentTimeMillis(),
-                    shares = shares,
-                    pricePerShare = price,
-                    totalValue = shares * price,
-                    source = "CHAT",
-                ),
-            )
         }
 
         suspend fun deleteLatestTransaction(
             ticker: String,
             action: String,
         ) {
-            val portfolio = portfolioDao.getDefaultPortfolio() ?: return
-            val holding = holdingDao.getHoldingByTicker(portfolio.id, ticker.uppercase()) ?: return
+            db.withTransaction {
+                val portfolio = portfolioDao.getDefaultPortfolio() ?: return@withTransaction
+                val holding = holdingDao.getHoldingByTicker(portfolio.id, ticker.uppercase()) ?: return@withTransaction
 
-            val transaction = transactionDao.getLatestTransaction(holding.id, action.uppercase()) ?: return
+                val transaction = transactionDao.getLatestTransaction(holding.id, action.uppercase()) ?: return@withTransaction
 
-            // Reverse the totalShares and costBase impact
-            val isBuy = transaction.type == "BUY"
-            val shareDelta = if (isBuy) -transaction.shares else transaction.shares
-            val valueDelta = if (isBuy) -transaction.totalValue else transaction.totalValue
+                transactionDao.deleteTransaction(transaction)
 
-            holdingDao.updateHolding(
-                holding.copy(
-                    totalShares = holding.totalShares + shareDelta,
-                    costBase = holding.costBase + valueDelta,
-                ),
-            )
-
-            transactionDao.deleteTransaction(transaction)
+                recalculateHoldingState(holding)
+            }
         }
 
-        // Simplified update method for MVP
         suspend fun updateLatestTransaction(
             ticker: String,
             action: String,
             newShares: Double,
             newPrice: Double,
         ) {
-            deleteLatestTransaction(ticker, action)
-            addTransaction(ticker, action, newShares, newPrice)
+            db.withTransaction {
+                val portfolio = portfolioDao.getDefaultPortfolio() ?: return@withTransaction
+                val holding = holdingDao.getHoldingByTicker(portfolio.id, ticker.uppercase()) ?: return@withTransaction
+                val transaction = transactionDao.getLatestTransaction(holding.id, action.uppercase()) ?: return@withTransaction
+
+                transactionDao.updateTransaction(
+                    transaction.copy(
+                        shares = newShares,
+                        pricePerShare = newPrice,
+                        totalValue = newShares * newPrice,
+                    ),
+                )
+
+                // Trigger domain recalculation
+                recalculateHoldingState(holding)
+            }
+        }
+
+        private suspend fun recalculateHoldingState(holding: com.chatfolio.data.local.entity.HoldingEntity) {
+            val allTransactions = transactionDao.getAllTransactionsAsc(holding.id)
+
+            // Map to domain abstraction
+            val domainTrades =
+                allTransactions.map {
+                    com.chatfolio.domain.usecase.TradeRecord(
+                        type = it.type,
+                        shares = it.shares,
+                        price = it.pricePerShare,
+                        date = it.date,
+                    )
+                }
+
+            // Pure domain calculation
+            val calculatedState = com.chatfolio.domain.usecase.PortfolioCalculator.calculate(domainTrades)
+
+            // Persist derived totals
+            holdingDao.updateHolding(
+                holding.copy(
+                    totalShares = calculatedState.totalShares,
+                    costBase = calculatedState.costBase,
+                    realizedProfit = calculatedState.realizedProfit,
+                ),
+            )
         }
     }

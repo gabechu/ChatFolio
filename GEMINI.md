@@ -64,6 +64,15 @@ com.chatfolio
 
 ## Key Architectural Rules
 
+### SOLID & OOP Principles
+- **Encapsulation**: Hide internal state. Expose only what is necessary via public interfaces and immutable data structures (e.g., exposing `StateFlow` instead of `MutableStateFlow`).
+- **Single Responsibility (SRP)**: Each class/function should have only one reason to change. Business logic, data fetching, and persistence MUST be separated.
+- **Open/Closed (OCP)**: Code should be open for extension but closed for modification. Use interfaces and polymorphism instead of hardcoding specific implementations.
+- **Liskov Substitution (LSP)**: Subclasses or implementations must be completely substitutable for their interfaces without breaking the app.
+- **Interface Segregation (ISP)**: Keep interfaces small and focused. Clients should not be forced to depend on methods they do not use (e.g., separate DAOs per entity).
+- **Dependency Inversion (DIP)**: Depend on abstractions, not concretions. Always use constructor injection via Hilt to provide dependencies.
+
+
 ### Layering
 - **UI → ViewModel → Domain → Data** — never skip layers or go backwards.
 - `ChatViewModel` orchestrates UI state but does not own business logic.
@@ -140,3 +149,4 @@ com.chatfolio
 - CSV import pipeline
 - Dividend tracking (auto + manual)
 - WorkManager background price refresh
+- Short Selling support (allowing negative share balances)

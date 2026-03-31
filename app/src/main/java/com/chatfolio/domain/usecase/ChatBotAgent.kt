@@ -19,6 +19,7 @@ sealed class ChatInteractionResult {
         val action: String,
         val shares: Double,
         val price: Double,
+        val date: Long?,
     )
 
     data class ParsedTransactions(val trades: List<ParsedTrade>) : ChatInteractionResult()
@@ -61,6 +62,7 @@ class ChatBotAgent
                         LlmToolParameter("action", "STRING", "Must be 'BUY' or 'SELL'"),
                         LlmToolParameter("shares", "NUMBER", "The number of shares"),
                         LlmToolParameter("price", "NUMBER", "The price per share"),
+                        LlmToolParameter("date", "STRING", "Optional ISO-8601 date of the transaction (e.g. 2023-10-01) if in the past"),
                     ),
             )
 
@@ -121,6 +123,13 @@ class ChatBotAgent
                                 action = it.arguments["action"]?.toString() ?: "BUY",
                                 shares = it.arguments["shares"]?.toString()?.toDoubleOrNull() ?: 0.0,
                                 price = it.arguments["price"]?.toString()?.toDoubleOrNull() ?: 0.0,
+                                date =
+                                    try {
+                                        val dStr = it.arguments["date"]?.toString()
+                                        if (dStr != null) java.time.LocalDate.parse(dStr).atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond() * 1000 else null
+                                    } catch (e: Exception) {
+                                        null
+                                    },
                             )
                         }
                     return ChatInteractionResult.ParsedTransactions(parsedTrades)
@@ -162,7 +171,13 @@ class ChatBotAgent
          */
         suspend fun persistTrades(trades: List<ChatInteractionResult.ParsedTrade>) {
             trades.forEach { trade ->
-                portfolioRepository.addTransaction(trade.ticker, trade.action, trade.shares, trade.price)
+                portfolioRepository.addTransaction(
+                    ticker = trade.ticker,
+                    action = trade.action,
+                    shares = trade.shares,
+                    price = trade.price,
+                    date = trade.date ?: System.currentTimeMillis(),
+                )
             }
         }
     }

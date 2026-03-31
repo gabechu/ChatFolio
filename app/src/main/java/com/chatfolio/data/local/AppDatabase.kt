@@ -20,7 +20,7 @@ import com.chatfolio.data.local.entity.TransactionEntity
         DividendEntity::class,
         PriceCacheEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
