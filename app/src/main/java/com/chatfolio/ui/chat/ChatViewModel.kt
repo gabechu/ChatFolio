@@ -6,6 +6,7 @@ import com.chatfolio.data.repository.PortfolioRepository
 import com.chatfolio.data.repository.SettingsRepository
 import com.chatfolio.domain.usecase.ChatBotAgent
 import com.chatfolio.domain.usecase.ChatInteractionResult
+import com.chatfolio.domain.usecase.PortfolioManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val portfolioRepository: PortfolioRepository,
     private val chatBotAgent: ChatBotAgent,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val portfolioManager: PortfolioManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -74,22 +76,26 @@ class ChatViewModel @Inject constructor(
                         newMessages.add(ChatContent.Text(markdown = "System: Error - ${result.message}", isUser = false))
                     }
                     is ChatInteractionResult.ShowPortfolio -> {
-                        val holdings = portfolioRepository.getHoldingsSnapshot()
-                        if (holdings.isEmpty()) {
+                        val liveHoldings = portfolioManager.getLiveHoldings()
+                        if (liveHoldings.isEmpty()) {
                             newMessages.add(ChatContent.Text(markdown = "Looks like your portfolio is currently empty. Try saving a trade first!", isUser = false))
                         } else {
-                            val totalInvested = holdings.sumOf { it.costBase }
+                            val totalMarketValue = liveHoldings.sumOf { it.marketValue }
+                            val totalCostBase = liveHoldings.sumOf { it.costBase }
+                            val totalGainLoss = totalMarketValue - totalCostBase
+                            val totalGainLossPercent = if (totalCostBase != 0.0) (totalGainLoss / totalCostBase) * 100.0 else 0.0
                             newMessages.add(
                                 ChatContent.PortfolioSummaryCard(
-                                    totalValue = totalInvested, // Using totalInvested instead of totalValue temporarily until Phase 3 Yahoo fetch is built
-                                    dailyChangeValue = 0.0,
-                                    dailyChangePercent = 0.0
+                                    totalValue = totalMarketValue,
+                                    dailyChangeValue = totalGainLoss,
+                                    dailyChangePercent = totalGainLossPercent
                                 )
                             )
-                            val holdingsList = holdings.joinToString("\n") { 
-                                "- **${it.ticker}**: ${it.totalShares} shares (Total Cost: $${String.format("%.2f", it.costBase)})"
+                            val holdingsList = liveHoldings.joinToString("\n") {
+                                val gainSign = if (it.gainLoss >= 0) "+" else ""
+                                "- **${it.ticker}**: ${it.totalShares} shares @ ${it.currency} ${String.format("%.2f", it.currentPrice)} — $gainSign${String.format("%.2f", it.gainLossPercent)}% (as of ${it.priceAsOf})"
                             }
-                            newMessages.add(ChatContent.Text(markdown = "Here is what you are currently holding:\n$holdingsList", isUser = false))
+                            newMessages.add(ChatContent.Text(markdown = "Here's your current portfolio:\n$holdingsList", isUser = false))
                         }
                     }
                     is ChatInteractionResult.DeleteTransaction -> {
