@@ -6,6 +6,15 @@ ChatFolio is a local-first, chat-driven Android portfolio tracker. There is no b
 
 The entire UX is a single chat screen. The AI responds with either plain text or rich inline composable cards (portfolio summary, trade confirmation, holdings table, charts).
 
+## AI Agent Development Workflow
+
+The following rules MUST be strictly adhered to by any LLM or AI agent interacting with this repository:
+
+1. **No Direct `main` Commits**: NEVER commit or push code directly to the `main` branch.
+2. **Require Consent to Merge**: NEVER merge any branch into `main` without explicit, unambiguous consent from the user. Even if a PR is created, wait for the user to approve and merge it, or wait for them to explicitly command you to do so.
+3. **Feature Isolation**: ALWAYS develop new features, bug fixes, or documentation updates in a completely new, isolated branch (e.g., `wchu/feature-name`).
+4. **Test-Driven Development (TDD)**: ALWAYS use Test-Driven Development. When adding a new feature, you MUST write corresponding tests (unit, integration, or UI) and verify them. Untested features are considered incomplete.
+
 ## Package Structure
 
 ```
