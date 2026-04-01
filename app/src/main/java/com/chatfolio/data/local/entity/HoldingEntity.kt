@@ -25,4 +25,5 @@ data class HoldingEntity(
     val market: String,
     val totalShares: Double,
     val costBase: Double,
+    val realizedProfit: Double = 0.0,
 )

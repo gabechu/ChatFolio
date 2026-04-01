@@ -101,6 +101,7 @@ class PortfolioManager
                 marketValue = marketValue,
                 gainLoss = gainLoss,
                 gainLossPercent = gainLossPercent,
+                realizedProfit = holding.realizedProfit,
                 priceAsOf = priceData.tradingDate,
             )
         }

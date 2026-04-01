@@ -26,7 +26,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "chatfolio_db",
-        ).build()
+        )
+            .addMigrations(com.chatfolio.data.local.DatabaseMigrations.MIGRATION_1_2)
+            .build()
     }
 
     @Provides

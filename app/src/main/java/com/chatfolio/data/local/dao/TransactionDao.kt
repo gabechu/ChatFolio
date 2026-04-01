@@ -12,6 +12,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE holdingId = :holdingId ORDER BY date DESC")
     fun getTransactionsForHolding(holdingId: Int): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE holdingId = :holdingId ORDER BY date ASC")
+    suspend fun getAllTransactionsAsc(holdingId: Int): List<TransactionEntity>
+
     @Query("SELECT * FROM transactions WHERE holdingId = :holdingId AND type = :type ORDER BY date DESC LIMIT 1")
     suspend fun getLatestTransaction(
         holdingId: Int,
