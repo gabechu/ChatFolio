@@ -36,7 +36,7 @@ object DatabaseMigrations {
                         `currency` TEXT NOT NULL, 
                         PRIMARY KEY(`ticker`)
                     )
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
             }
         }
