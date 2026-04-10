@@ -27,6 +27,16 @@ ChatFolio uses GitHub Actions for automated quality control. The workflow is loc
 - **Unit Tests**: Runs all JVM unit tests.
 - **Build Verification**: Ensures the debug APK assembles correctly.
 
+## Code Review Hierarchy
+
+When reviewing Pull Requests, evaluate the code by processing issues in this strict order of importance. Do not block a PR on minor structural nits if the architecture is sound.
+
+1. **Design & Architecture**: Does this code belong in this class? Does it violate SOLID principles? Do we already have an existing utility that does this?
+2. **Functionality**: Does the code actually do what the author intended? Are there edge cases or possible null-pointer risks?
+3. **Complexity & Readability**: Is the logic over-engineered? Can a junior developer easily understand what is happening? Code is read 10x more than it is written.
+4. **Tests**: Every new behavior must have a test (`Test-Driven Development`). Are the tests actually verifying the behavior, or just testing that a mock was called?
+5. **Naming**: Are variables and functions clear, descriptive, and accurately representing what they do?
+
 ## Package Structure
 
 ```
