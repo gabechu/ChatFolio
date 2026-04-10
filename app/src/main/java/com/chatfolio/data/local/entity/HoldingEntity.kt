@@ -26,4 +26,5 @@ data class HoldingEntity(
     val totalShares: Double,
     val costBase: Double,
     val realizedProfit: Double = 0.0,
+    val currency: String = "AUD",
 )

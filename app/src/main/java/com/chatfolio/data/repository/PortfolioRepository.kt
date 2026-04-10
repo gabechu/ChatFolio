@@ -35,6 +35,7 @@ class PortfolioRepository
             shares: Double,
             price: Double,
             date: Long = System.currentTimeMillis(),
+            currency: String = "AUD",
         ) {
             db.withTransaction {
                 // 1. Get or create default portfolio
@@ -57,6 +58,7 @@ class PortfolioRepository
                             totalShares = 0.0,
                             costBase = 0.0,
                             realizedProfit = 0.0,
+                            currency = currency,
                         ),
                     )
                     holding = holdingDao.getHoldingByTicker(portfolio.id, upperTicker) ?: return@withTransaction
@@ -72,6 +74,7 @@ class PortfolioRepository
                         shares = shares,
                         pricePerShare = price,
                         totalValue = shares * price,
+                        currency = currency,
                         source = "CHAT",
                     ),
                 )

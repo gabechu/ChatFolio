@@ -20,11 +20,46 @@ class PortfolioManager
         private val priceCacheDao: PriceCacheDao,
         private val yahooFinanceClient: YahooFinanceClient,
     ) {
+        data class GlobalPortfolioSummary(
+            val totalValueAud: Double,
+            val totalValueUsd: Double,
+            val totalInvestedAud: Double,
+            val totalInvestedUsd: Double,
+        )
+
         private data class PriceData(
             val price: Double,
             val currency: String,
             val tradingDate: String,
         )
+
+        suspend fun getGlobalSummary(): GlobalPortfolioSummary {
+            val liveHoldings = getLiveHoldings()
+            val audUsdRate = resolveFXRate("AUDUSD=X")
+
+            var totalAud = 0.0
+            var totalUsd = 0.0
+            var investedAud = 0.0
+            var investedUsd = 0.0
+
+            for (holding in liveHoldings) {
+                // Determine rate to AUD and rate to USD from holding's currency
+                val toAudRate = if (holding.currency.uppercase() == "USD") 1.0 / audUsdRate else 1.0
+                val toUsdRate = if (holding.currency.uppercase() == "AUD") audUsdRate else 1.0
+
+                totalAud += holding.marketValue * toAudRate
+                totalUsd += holding.marketValue * toUsdRate
+                investedAud += holding.costBase * toAudRate
+                investedUsd += holding.costBase * toUsdRate
+            }
+
+            return GlobalPortfolioSummary(
+                totalValueAud = totalAud,
+                totalValueUsd = totalUsd,
+                totalInvestedAud = investedAud,
+                totalInvestedUsd = investedUsd,
+            )
+        }
 
         suspend fun getLiveHoldings(): List<HoldingWithPrice> {
             val portfolio = portfolioDao.getDefaultPortfolio() ?: return emptyList()
@@ -62,6 +97,22 @@ class PortfolioManager
             } else {
                 // Yahoo and DB agree on the trading date — no write needed
                 PriceData(cached.closePrice, cached.currency, cached.tradingDate)
+            }
+        }
+
+        private suspend fun resolveFXRate(pair: String): Double {
+            val cached = priceCacheDao.getLatestPrice(pair)
+            val fetched = fetchFromYahoo(pair)
+
+            if (fetched == null) return cached?.closePrice ?: 1.0 // Fallback
+
+            return if (cached == null || fetched.tradingDate != cached.tradingDate) {
+                priceCacheDao.upsertPrice(
+                    PriceCacheEntity(pair, fetched.tradingDate, fetched.price, fetched.currency),
+                )
+                fetched.price
+            } else {
+                cached.closePrice
             }
         }
 

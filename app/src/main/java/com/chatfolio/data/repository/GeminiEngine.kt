@@ -1,5 +1,6 @@
 package com.chatfolio.data.repository
 
+import com.chatfolio.data.network.withRetry
 import com.chatfolio.domain.port.ChatMessage
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmResponse
@@ -71,17 +72,34 @@ class GeminiEngine
                         },
                 )
             try {
-                // Convert our raw generic messages to Firebase Content objects
-                val firebaseMessages =
-                    messages.map { msg ->
-                        Content(
-                            role = if (msg.role == "user") "user" else "model",
-                            parts = listOf(TextPart(msg.content)),
-                        )
-                    }
+                val response =
+                    withRetry(
+                        times = 2,
+                        shouldRetry = { error ->
+                            val cause = error.cause
+                            val isKtorServerErr =
+                                (cause is io.ktor.client.plugins.ServerResponseException) &&
+                                    (cause.response.status.value in 500..504)
 
-                // Send to Gemini
-                val response = generativeModel.generateContent(*firebaseMessages.toTypedArray())
+                            // GenerativeAI SDK usually wraps HTTP 5xx inside ServerException.
+                            val isGoogleServerErr = error is com.google.ai.client.generativeai.type.ServerException
+                            val has5xxCode = Regex("""\b(500|502|503|504)\b""").containsMatchIn(error.message ?: "")
+
+                            isKtorServerErr || (isGoogleServerErr && has5xxCode)
+                        },
+                    ) {
+                        // Convert our raw generic messages to Firebase Content objects
+                        val firebaseMessages =
+                            messages.map { msg ->
+                                Content(
+                                    role = if (msg.role == "user") "user" else "model",
+                                    parts = listOf(TextPart(msg.content)),
+                                )
+                            }
+
+                        // Send to Gemini
+                        generativeModel.generateContent(*firebaseMessages.toTypedArray())
+                    }
 
                 // Check if Gemini invoked our addTransaction function
                 val functionCalls =
@@ -105,7 +123,6 @@ class GeminiEngine
                     toolCalls = if (functionCalls.isEmpty()) null else functionCalls,
                 )
             } catch (e: Exception) {
-                e.printStackTrace()
                 return LlmResponse(
                     textResponse = "Error connecting to Gemini: ${e.message}",
                     toolCalls = null,
