@@ -47,7 +47,8 @@ class YahooFinanceClientTest {
                           "currency": "USD",
                           "symbol": "AAPL",
                           "regularMarketPrice": 150.5,
-                          "previousClose": 149.0
+                          "previousClose": 149.0,
+                          "regularMarketTime": 1712779200
                         }
                       }
                     ],
@@ -65,6 +66,7 @@ class YahooFinanceClientTest {
             assertEquals("AAPL", meta.symbol)
             assertEquals("USD", meta.currency)
             assertEquals(150.5, meta.regularMarketPrice!!, 0.0)
+            assertEquals(1712779200L, meta.regularMarketTime)
         }
 
     @Test
