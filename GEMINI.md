@@ -16,7 +16,7 @@ The following rules MUST be strictly adhered to by any LLM or AI agent interacti
 4. **Atomic & Granular Commits**: Do not commit everything in one big block. Commits should be highly granular and "atomic" — each commit should represent a single, complete, and testable semantic change. The smaller the commit, the better.
 5. **Conventional Commits**: You MUST follow the industry-standard [Conventional Commits](https://www.conventionalcommits.org/) format. Every commit message must begin with a standard prefix describing the intent: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, or `revert:`.
 6. **Test-Driven Development (TDD)**: ALWAYS use Test-Driven Development. When adding a new feature, you MUST write corresponding tests (unit, integration, or UI) and verify them. Untested features are considered incomplete.
-7. **Continuous Integration**: EVERY pull request is automatically verified by GitHub Actions. You MUST ensure `ktlintCheck` and `testDebugUnitTest` pass before requesting a review.
+7. **Continuous Integration**: EVERY pull request is automatically verified by GitHub Actions. You MUST run `./gradlew ktlintFormat` and ensure `testDebugUnitTest` passes BEFORE generating a commit or requesting a review. Do not let CI catch your lint errors.
 8. **Progress Tracking**: Before starting work, check the `checkpoints/` folder. Progress is tracked incrementally in session files. Read them sequentially, starting with the highest numbered session (e.g., `SESSION_2_CHECKPOINT.md`). If you need more historical context, fall back to the previous session (e.g., `SESSION_1_CHECKPOINT.md`).
 
 
