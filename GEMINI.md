@@ -12,11 +12,12 @@ The following rules MUST be strictly adhered to by any LLM or AI agent interacti
 
 1. **No Direct `main` Commits**: NEVER commit or push code directly to the `main` branch.
 2. **Require Consent to Merge**: NEVER merge any branch into `main` without explicit, unambiguous consent from the user. Even if a PR is created, wait for the user to approve and merge it, or wait for them to explicitly command you to do so.
-3. **Branch Naming**: ALWAYS create branches using the `{user}/feature-name` format (e.g., `wchu/add-ci-pipeline`).
-4. **Conventional Commits**: You MUST follow conventional commit patterns for commit messages (e.g., prefixing with `feat:`, `chore:`, `fix:`, `refactor:`, `docs:`, etc.).
-5. **Feature Isolation**: ALWAYS develop new features, bug fixes, or documentation updates in your isolated branch.
+3. **Branching Strategy**: ALWAYS create a new, isolated branch when developing a new feature, bug fix, or documentation update. Branch names must strictly follow the `{user_name}/{feature_name}` format (e.g., `wchu/add-timber-logging`).
+4. **Atomic & Granular Commits**: Do not commit everything in one big block. Commits should be highly granular and "atomic" — each commit should represent a single, complete, and testable semantic change. The smaller the commit, the better.
+5. **Conventional Commits**: You MUST follow the industry-standard [Conventional Commits](https://www.conventionalcommits.org/) format. Every commit message must begin with a standard prefix describing the intent: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, or `revert:`.
 6. **Test-Driven Development (TDD)**: ALWAYS use Test-Driven Development. When adding a new feature, you MUST write corresponding tests (unit, integration, or UI) and verify them. Untested features are considered incomplete.
-7. **Continuous Integration**: EVERY pull request is automatically verified by GitHub Actions. You MUST ensure `ktlintCheck` and `testDebugUnitTest` pass before requesting a review.
+7. **Continuous Integration**: EVERY pull request is automatically verified by GitHub Actions. You MUST run `./gradlew ktlintFormat` and ensure `testDebugUnitTest` passes BEFORE generating a commit or requesting a review. Do not let CI catch your lint errors.
+8. **Progress Tracking**: Before starting work, check the `checkpoints/` folder. Progress is tracked incrementally in session files. Read them sequentially, starting with the highest numbered session (e.g., `SESSION_2_CHECKPOINT.md`). If you need more historical context, fall back to the previous session (e.g., `SESSION_1_CHECKPOINT.md`).
 
 
 ## Continuous Integration (GitHub Actions)
@@ -25,6 +26,16 @@ ChatFolio uses GitHub Actions for automated quality control. The workflow is loc
 - **Linting**: Enforces Kotlin style via `ktlint`.
 - **Unit Tests**: Runs all JVM unit tests.
 - **Build Verification**: Ensures the debug APK assembles correctly.
+
+## Code Review Hierarchy
+
+When reviewing Pull Requests, evaluate the code by processing issues in this strict order of importance. Do not block a PR on minor structural nits if the architecture is sound.
+
+1. **Design & Architecture**: Does this code belong in this class? Does it violate SOLID principles? Do we already have an existing utility that does this?
+2. **Functionality**: Does the code actually do what the author intended? Are there edge cases or possible null-pointer risks?
+3. **Complexity & Readability**: Is the logic over-engineered? Can a junior developer easily understand what is happening? Code is read 10x more than it is written.
+4. **Tests**: Every new behavior must have a test (`Test-Driven Development`). Are the tests actually verifying the behavior, or just testing that a mock was called?
+5. **Naming**: Are variables and functions clear, descriptive, and accurately representing what they do?
 
 ## Package Structure
 
@@ -150,3 +161,8 @@ com.chatfolio
 - Dividend tracking (auto + manual)
 - WorkManager background price refresh
 - Short Selling support (allowing negative share balances)
+- **Transactions Management Screen**: Dedicated non-chat UI to view and edit historical orders.
+- **Unconstrained Conversation**: Allowing generic LLM chat responses for general questions instead of strictly enforcing tool calls.
+- **Multi-Currency & FX Tracking**: Support for denoting transactions in their native currencies (e.g., AUD, USD), fetching live FX conversions, and presenting global portfolio valuations in dual currencies.
+- **Receipt/Statement OCR Analysis**: Photo-based trade extraction using Gemini multimodal capabilities.
+- **Investor Personality Analysis**: AI-driven evaluation of portfolio/trading patterns to match against famous investor profiles.

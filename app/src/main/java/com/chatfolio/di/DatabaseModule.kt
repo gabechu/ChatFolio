@@ -27,7 +27,11 @@ object DatabaseModule {
             AppDatabase::class.java,
             "chatfolio_db",
         )
-            .addMigrations(com.chatfolio.data.local.DatabaseMigrations.MIGRATION_1_2)
+            .addMigrations(
+                com.chatfolio.data.local.DatabaseMigrations.MIGRATION_1_2,
+                com.chatfolio.data.local.DatabaseMigrations.MIGRATION_2_3,
+                com.chatfolio.data.local.DatabaseMigrations.MIGRATION_3_4,
+            )
             .build()
     }
 

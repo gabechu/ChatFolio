@@ -43,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.11"
@@ -96,6 +97,9 @@ dependencies {
     val vicoVersion = "1.13.1"
     implementation("com.patrykandpatrick.vico:compose:$vicoVersion")
     implementation("com.patrykandpatrick.vico:views:$vicoVersion")
+
+    // Observability
+    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // Tooling & Testing
     debugImplementation("androidx.compose.ui:ui-tooling")

@@ -5,6 +5,7 @@ import com.chatfolio.domain.port.ChatMessage
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmTool
 import com.chatfolio.domain.port.LlmToolParameter
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -20,6 +21,7 @@ sealed class ChatInteractionResult {
         val shares: Double,
         val price: Double,
         val date: Long?,
+        val currency: String,
     )
 
     data class ParsedTransactions(val trades: List<ParsedTrade>) : ChatInteractionResult()
@@ -28,7 +30,7 @@ sealed class ChatInteractionResult {
 
     data class UpdateTransaction(val ticker: String, val action: String, val newShares: Double, val newPrice: Double) : ChatInteractionResult()
 
-    object ShowPortfolio : ChatInteractionResult()
+    data class ShowPortfolio(val displayCurrency: String) : ChatInteractionResult()
 
     data class Error(val message: String) : ChatInteractionResult()
 }
@@ -63,6 +65,7 @@ class ChatBotAgent
                         LlmToolParameter("shares", "NUMBER", "The number of shares"),
                         LlmToolParameter("price", "NUMBER", "The price per share"),
                         LlmToolParameter("date", "STRING", "Optional ISO-8601 date of the transaction (e.g. 2023-10-01) if in the past"),
+                        LlmToolParameter("currency", "STRING", "The currency of the transaction. Default to 'AUD' if omitted."),
                     ),
             )
 
@@ -70,7 +73,10 @@ class ChatBotAgent
             LlmTool(
                 name = TOOL_SHOW_PORTFOLIO,
                 description = "Displays the user's current stock holdings and portfolio summary.",
-                parameters = emptyList(),
+                parameters =
+                    listOf(
+                        LlmToolParameter("currency", "STRING", "The currency to display the portfolio in. Default to 'AUD' if omit."),
+                    ),
             )
 
         private val deleteTransactionTool =
@@ -130,6 +136,7 @@ class ChatBotAgent
                                     } catch (e: Exception) {
                                         null
                                     },
+                                currency = it.arguments["currency"]?.toString() ?: "AUD",
                             )
                         }
                     return ChatInteractionResult.ParsedTransactions(parsedTrades)
@@ -137,7 +144,8 @@ class ChatBotAgent
 
                 val showPortfolioCall = toolCalls?.firstOrNull { it.name == TOOL_SHOW_PORTFOLIO }
                 if (showPortfolioCall != null) {
-                    return ChatInteractionResult.ShowPortfolio
+                    val displayCurrency = showPortfolioCall.arguments["currency"]?.toString() ?: "AUD"
+                    return ChatInteractionResult.ShowPortfolio(displayCurrency)
                 }
 
                 val deleteCall = toolCalls?.firstOrNull { it.name == TOOL_DELETE_TRANSACTION }
@@ -161,6 +169,7 @@ class ChatBotAgent
                 // Otherwise, it's a standard text reply
                 return ChatInteractionResult.TextReply(response.textResponse ?: "")
             } catch (e: Exception) {
+                Timber.e(e, "Error communicating with LLM")
                 return ChatInteractionResult.Error(e.message ?: "Unknown error occurred")
             }
         }
@@ -177,6 +186,7 @@ class ChatBotAgent
                     shares = trade.shares,
                     price = trade.price,
                     date = trade.date ?: System.currentTimeMillis(),
+                    currency = trade.currency,
                 )
             }
         }

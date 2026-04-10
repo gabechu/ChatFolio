@@ -27,6 +27,7 @@ data class TransactionEntity(
     val shares: Double,
     val pricePerShare: Double,
     val totalValue: Double,
+    val currency: String = "AUD",
     // "CHAT", "CSV", "API"
     val source: String,
 )
