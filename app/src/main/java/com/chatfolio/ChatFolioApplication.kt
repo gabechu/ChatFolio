@@ -2,11 +2,14 @@ package com.chatfolio
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
+import timber.log.Timber
 
 @HiltAndroidApp
 class ChatFolioApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Initialize any necessary services here
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
     }
 }

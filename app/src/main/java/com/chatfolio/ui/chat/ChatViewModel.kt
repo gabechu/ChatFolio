@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 data class ChatUiState(
@@ -25,6 +26,7 @@ class ChatViewModel
         private val portfolioRepository: PortfolioRepository,
         private val chatBotAgent: ChatBotAgent,
         private val settingsRepository: SettingsRepository,
+        private val portfolioManager: com.chatfolio.domain.usecase.PortfolioManager,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(ChatUiState())
         val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
@@ -87,18 +89,19 @@ class ChatViewModel
                                     ),
                                 )
                             } else {
-                                val totalInvested = holdings.sumOf { it.costBase }
+                                val globalSummary = portfolioManager.getGlobalSummary()
                                 newMessages.add(
                                     ChatContent.PortfolioSummaryCard(
-                                        // Using totalInvested instead of totalValue temporarily until Phase 3 Yahoo fetch is built
-                                        totalValue = totalInvested,
-                                        dailyChangeValue = 0.0,
-                                        dailyChangePercent = 0.0,
+                                        totalValueAud = globalSummary.totalValueAud,
+                                        totalValueUsd = globalSummary.totalValueUsd,
+                                        totalInvestedAud = globalSummary.totalInvestedAud,
+                                        totalInvestedUsd = globalSummary.totalInvestedUsd,
+                                        displayCurrency = result.displayCurrency,
                                     ),
                                 )
                                 val holdingsList =
                                     holdings.joinToString("\n") {
-                                        "- **${it.ticker}**: ${it.totalShares} shares (Total Cost: $${String.format("%.2f", it.costBase)})"
+                                        "- **${it.ticker}**: ${it.totalShares} shares (Base: ${it.currency})"
                                     }
                                 newMessages.add(
                                     ChatContent.Text(markdown = "Here is what you are currently holding:\n$holdingsList", isUser = false),
@@ -127,6 +130,7 @@ class ChatViewModel
 
                     _uiState.value = _uiState.value.copy(messages = newMessages, isTyping = false)
                 } catch (e: Exception) {
+                    Timber.e(e, "Error processing message")
                     val errorMessages = _uiState.value.messages.toMutableList()
                     errorMessages.add(ChatContent.Text(markdown = "System: Error - ${e.message}", isUser = false))
                     _uiState.value = _uiState.value.copy(messages = errorMessages, isTyping = false)
@@ -144,6 +148,7 @@ class ChatViewModel
                     newMessages.add(ChatContent.Text(markdown = "✅ Successfully saved **${trades.size}** trades.", isUser = false))
                     _uiState.value = _uiState.value.copy(messages = newMessages)
                 } catch (e: Exception) {
+                    Timber.e(e, "Error saving transactions")
                     val errorMessages = _uiState.value.messages.toMutableList()
                     errorMessages.add(ChatContent.Text(markdown = "Error saving transactions: ${e.message}", isUser = false))
                     _uiState.value = _uiState.value.copy(messages = errorMessages)
