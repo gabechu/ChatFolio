@@ -21,7 +21,7 @@ import com.chatfolio.data.local.entity.TransactionEntity
         PriceCacheEntity::class,
     ],
     version = 4,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun portfolioDao(): PortfolioDao

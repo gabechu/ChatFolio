@@ -117,3 +117,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 }
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
