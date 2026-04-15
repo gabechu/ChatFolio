@@ -18,4 +18,8 @@ sealed class ChatContent {
     data class BatchTransactionConfirmCard(
         val trades: List<com.chatfolio.domain.usecase.ChatInteractionResult.ParsedTrade>,
     ) : ChatContent()
+
+    data class HoldingsTableCard(
+        val liveHoldings: List<com.chatfolio.domain.usecase.HoldingWithPrice>,
+    ) : ChatContent()
 }
