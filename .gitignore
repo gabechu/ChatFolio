@@ -28,3 +28,6 @@ obj/
 *.jks
 *.keystore
 google-services.json
+
+# Gemini local configurations
+.gemini/
