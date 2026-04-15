@@ -1,5 +1,6 @@
 package com.chatfolio.domain.usecase
 
+import com.chatfolio.data.repository.MarketDataRepository
 import com.chatfolio.data.repository.PortfolioRepository
 import com.chatfolio.domain.port.ChatMessage
 import com.chatfolio.domain.port.LlmEngine
@@ -44,6 +45,7 @@ class ChatBotAgent
     constructor(
         private val llmEngine: LlmEngine,
         private val portfolioRepository: PortfolioRepository,
+        private val marketDataRepository: MarketDataRepository,
     ) {
         companion object {
             private const val TOOL_ADD_TRANSACTION = "addTransaction"
@@ -124,8 +126,18 @@ class ChatBotAgent
                 if (!transactionCalls.isNullOrEmpty()) {
                     val parsedTrades =
                         transactionCalls.map {
+                            val parsedTicker = it.arguments["ticker"]?.toString() ?: "UNKNOWN"
+                            val parsedCurrency = it.arguments["currency"]?.toString()
+
+                            val resolvedCurrency =
+                                if (parsedCurrency.isNullOrBlank() && parsedTicker != "UNKNOWN") {
+                                    marketDataRepository.getLatestPrice(parsedTicker).currency
+                                } else {
+                                    parsedCurrency ?: "AUD"
+                                }
+
                             ChatInteractionResult.ParsedTrade(
-                                ticker = it.arguments["ticker"]?.toString() ?: "UNKNOWN",
+                                ticker = parsedTicker,
                                 action = it.arguments["action"]?.toString() ?: "BUY",
                                 shares = it.arguments["shares"]?.toString()?.toDoubleOrNull() ?: 0.0,
                                 price = it.arguments["price"]?.toString()?.toDoubleOrNull() ?: 0.0,
@@ -136,7 +148,7 @@ class ChatBotAgent
                                     } catch (e: Exception) {
                                         null
                                     },
-                                currency = it.arguments["currency"]?.toString() ?: "AUD",
+                                currency = resolvedCurrency,
                             )
                         }
                     return ChatInteractionResult.ParsedTransactions(parsedTrades)
