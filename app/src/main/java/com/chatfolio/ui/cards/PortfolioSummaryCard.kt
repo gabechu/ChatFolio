@@ -1,6 +1,5 @@
 package com.chatfolio.ui.cards
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chatfolio.ui.chat.ChatContent
@@ -24,23 +22,13 @@ import java.util.Locale
 fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
     val audFormat = java.text.NumberFormat.getCurrencyInstance(Locale("en", "AU"))
     val usdFormat = java.text.NumberFormat.getCurrencyInstance(Locale("en", "US"))
-    val percentFormat =
-        java.text.NumberFormat.getPercentInstance().apply {
-            minimumFractionDigits = 2
-        }
 
     val isUsd = content.displayCurrency.equals("USD", ignoreCase = true)
 
     val totalValue = if (isUsd) content.totalValueUsd else content.totalValueAud
     val totalInvested = if (isUsd) content.totalInvestedUsd else content.totalInvestedAud
-    val gainLoss = totalValue - totalInvested
-    val gainLossPercent = if (totalInvested != 0.0) gainLoss / totalInvested else 0.0
     val format = if (isUsd) usdFormat else audFormat
     val currencyStr = if (isUsd) "USD" else "AUD"
-
-    // Material colors adapted for basic P&L
-    val profitColor = if (gainLoss >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val profitSign = if (gainLoss >= 0) "+" else ""
 
     Card(
         modifier =
@@ -69,32 +57,17 @@ fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text(
-                        text = "Total Invested",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = format.format(totalInvested),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Total Profit/Loss",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "$profitSign${format.format(gainLoss)} ($profitSign${percentFormat.format(gainLossPercent)})",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = profitColor,
-                    )
-                }
+            Column {
+                Text(
+                    text = "Total Invested",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = format.format(totalInvested),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }
