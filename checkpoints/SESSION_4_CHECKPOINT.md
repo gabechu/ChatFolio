@@ -11,12 +11,9 @@
 - **AI Agent Abstraction:** Decoupled `ChatBotAgent` entirely. Stripped its JSON-mapping logic strictly into an external `ChatToolParsers` library, and refactored the parent class into an enterprise-grade pure logic orchestrator named `ChatInteraction`.
 - **Domain Layer Abstraction:** Extracted deep technical debt inside `PortfolioManager` into a cleanly abstracted `MarketDataRepository`, decoupling Room caching and Ktor network polling from mathematical execution, satisfying SOLID Design and DRY rules.
 - **Strict Testing Pipelines:** `PortfolioManagerTest` and `MarketDataRepositoryTest` separated, and rigorously tested up to Continuous Integration standards.
+- **Room AutoMigrations Configured:** Configured KSP `room.schemaLocation` and enabled `exportSchema = true` in `AppDatabase`, unlocking automated compile-time auto-migrations for future schema updates.
 
 ## Known Debt
-- **Room AutoMigrations:** The database currently relies on manual SQL string migrations (e.g., `MIGRATION_3_4`). We need to configure KSP `room.schemaLocation` and enable `exportSchema = true` in `AppDatabase` to generate JSON schemas, transitioning to automated compile-time `AutoMigration` for future schema upgrades.
-
-## Current Next Steps
-- Implement Room AutoMigrations configuration as noted above before doing any more database schema changes.
 - Enable CSV import pipeline now that bulk operations are supported.
 
 ## Upcoming Epics (New Features)
