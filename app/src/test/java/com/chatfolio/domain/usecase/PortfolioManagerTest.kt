@@ -161,27 +161,32 @@ class PortfolioManagerTest {
             // Always fail main fetches so it relies on exact caches mocked above
             coEvery { yahooFinanceClient.fetchSymbolData(any()) } returns Result.failure(Exception("simulate failure to force cache"))
 
-            // For the FX Rate specifically, provide an AUDUSD=X pair of 0.65 (1 AUD = 0.65 USD)
+            // For the FX Rate, provide:
+            // AUD to USD -> 0.65
             coEvery { priceCacheDao.getLatestPrice("AUDUSD=X") } returns PriceCacheEntity("AUDUSD=X", "2026-04-10", 0.65, "USD")
+            // USD to AUD -> ~1.538
+            coEvery { priceCacheDao.getLatestPrice("USDAUD=X") } returns PriceCacheEntity("USDAUD=X", "2026-04-10", 1.0 / 0.65, "AUD")
 
-            val summary = portfolioManager.getGlobalSummary()
+            val summaryAud = portfolioManager.getGlobalSummary("AUD")
 
             // Calculations:
             // AAPL (USD): cost = 1000, value = 2000
             // CBA (AUD): cost = 500, value = 1000
-            // AUDUSD = 0.65 (means 1 AUD = 0.65 USD, or 1 USD = 1/0.65 = 1.538 AUD)
 
-            // totalValueAud = (AAPL value in AUD) + (CBA value in AUD)
-            // AAPL in AUD = 2000 * (1 / 0.65) = 3076.92
-            // totalAud = 3076.92 + 1000 = 4076.92
-            assertThat(summary.totalValueAud).isWithin(0.01).of(2000.0 * (1.0 / 0.65) + 1000.0)
+            // Total in AUD:
+            // AAPL in AUD = 2000 * (1 / 0.65)
+            // base AUD = 1000
+            assertThat(summaryAud.totalValue).isWithin(0.01).of(2000.0 * (1.0 / 0.65) + 1000.0)
+            assertThat(summaryAud.targetCurrency).isEqualTo("AUD")
 
-            // totalValueUsd = (AAPL value in USD) + (CBA value in USD)
+            val summaryUsd = portfolioManager.getGlobalSummary("USD")
+
+            // Total in USD:
             // CBA in USD = 1000 * 0.65 = 650
-            // totalUsd = 2000 + 650 = 2650
-            assertThat(summary.totalValueUsd).isWithin(0.01).of(2000.0 + 1000.0 * 0.65)
+            // base USD = 2000
+            assertThat(summaryUsd.totalValue).isWithin(0.01).of(2000.0 + 1000.0 * 0.65)
 
             // Total Invested US
-            assertThat(summary.totalInvestedUsd).isWithin(0.01).of(1000.0 + 500.0 * 0.65)
+            assertThat(summaryUsd.totalInvested).isWithin(0.01).of(1000.0 + 500.0 * 0.65)
         }
 }

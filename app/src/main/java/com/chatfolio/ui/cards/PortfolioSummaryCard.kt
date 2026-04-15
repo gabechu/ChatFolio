@@ -20,15 +20,11 @@ import java.util.Locale
 
 @Composable
 fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
-    val audFormat = java.text.NumberFormat.getCurrencyInstance(Locale("en", "AU"))
-    val usdFormat = java.text.NumberFormat.getCurrencyInstance(Locale("en", "US"))
-
-    val isUsd = content.displayCurrency.equals("USD", ignoreCase = true)
-
-    val totalValue = if (isUsd) content.totalValueUsd else content.totalValueAud
-    val totalInvested = if (isUsd) content.totalInvestedUsd else content.totalInvestedAud
-    val format = if (isUsd) usdFormat else audFormat
-    val currencyStr = if (isUsd) "USD" else "AUD"
+    val currencyStr = content.displayCurrency.uppercase(Locale.getDefault())
+    val format =
+        java.text.NumberFormat.getCurrencyInstance().apply {
+            currency = java.util.Currency.getInstance(currencyStr)
+        }
 
     Card(
         modifier =
@@ -49,7 +45,7 @@ fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
 
             Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = format.format(totalValue),
+                    text = format.format(content.totalValue),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -64,7 +60,7 @@ fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = format.format(totalInvested),
+                    text = format.format(content.totalInvested),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                 )

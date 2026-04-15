@@ -21,10 +21,9 @@ class PortfolioManager
         private val yahooFinanceClient: YahooFinanceClient,
     ) {
         data class GlobalPortfolioSummary(
-            val totalValueAud: Double,
-            val totalValueUsd: Double,
-            val totalInvestedAud: Double,
-            val totalInvestedUsd: Double,
+            val totalValue: Double,
+            val totalInvested: Double,
+            val targetCurrency: String,
         )
 
         private data class PriceData(
@@ -33,31 +32,28 @@ class PortfolioManager
             val tradingDate: String,
         )
 
-        suspend fun getGlobalSummary(): GlobalPortfolioSummary {
+        suspend fun getGlobalSummary(targetCurrency: String = "AUD"): GlobalPortfolioSummary {
             val liveHoldings = getLiveHoldings()
-            val audUsdRate = resolveFXRate("AUDUSD=X")
 
-            var totalAud = 0.0
-            var totalUsd = 0.0
-            var investedAud = 0.0
-            var investedUsd = 0.0
+            var totalValue = 0.0
+            var totalInvested = 0.0
 
             for (holding in liveHoldings) {
-                // Determine rate to AUD and rate to USD from holding's currency
-                val toAudRate = if (holding.currency.uppercase() == "USD") 1.0 / audUsdRate else 1.0
-                val toUsdRate = if (holding.currency.uppercase() == "AUD") audUsdRate else 1.0
+                val rate =
+                    if (holding.currency.uppercase() == targetCurrency.uppercase()) {
+                        1.0
+                    } else {
+                        resolveFXRate("${holding.currency.uppercase()}${targetCurrency.uppercase()}=X")
+                    }
 
-                totalAud += holding.marketValue * toAudRate
-                totalUsd += holding.marketValue * toUsdRate
-                investedAud += holding.costBase * toAudRate
-                investedUsd += holding.costBase * toUsdRate
+                totalValue += holding.marketValue * rate
+                totalInvested += holding.costBase * rate
             }
 
             return GlobalPortfolioSummary(
-                totalValueAud = totalAud,
-                totalValueUsd = totalUsd,
-                totalInvestedAud = investedAud,
-                totalInvestedUsd = investedUsd,
+                totalValue = totalValue,
+                totalInvested = totalInvested,
+                targetCurrency = targetCurrency,
             )
         }
 

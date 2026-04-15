@@ -89,13 +89,11 @@ class ChatViewModel
                                     ),
                                 )
                             } else {
-                                val globalSummary = portfolioManager.getGlobalSummary()
+                                val globalSummary = portfolioManager.getGlobalSummary(result.displayCurrency)
                                 newMessages.add(
                                     ChatContent.PortfolioSummaryCard(
-                                        totalValueAud = globalSummary.totalValueAud,
-                                        totalValueUsd = globalSummary.totalValueUsd,
-                                        totalInvestedAud = globalSummary.totalInvestedAud,
-                                        totalInvestedUsd = globalSummary.totalInvestedUsd,
+                                        totalValue = globalSummary.totalValue,
+                                        totalInvested = globalSummary.totalInvested,
                                         displayCurrency = result.displayCurrency,
                                     ),
                                 )
