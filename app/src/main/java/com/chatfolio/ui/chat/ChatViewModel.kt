@@ -80,8 +80,8 @@ class ChatViewModel
                             newMessages.add(ChatContent.Text(markdown = "System: Error - ${result.message}", isUser = false))
                         }
                         is ChatInteractionResult.ShowPortfolio -> {
-                            val holdings = portfolioRepository.getHoldingsSnapshot()
-                            if (holdings.isEmpty()) {
+                            val liveHoldings = portfolioManager.getLiveHoldings()
+                            if (liveHoldings.isEmpty()) {
                                 newMessages.add(
                                     ChatContent.Text(
                                         markdown = "Looks like your portfolio is currently empty. Try saving a trade first!",
@@ -100,8 +100,18 @@ class ChatViewModel
                                     ),
                                 )
                                 val holdingsList =
-                                    holdings.joinToString("\n") {
-                                        "- **${it.ticker}**: ${it.totalShares} shares (Base: ${it.currency})"
+                                    liveHoldings.joinToString("\n") {
+                                        val profitStr =
+                                            if (it.gainLoss >= 0) {
+                                                "+$${String.format(
+                                                    java.util.Locale.US,
+                                                    "%.2f",
+                                                    it.gainLoss,
+                                                )}"
+                                            } else {
+                                                "-$${String.format(java.util.Locale.US, "%.2f", -it.gainLoss)}"
+                                            }
+                                        "- **${it.ticker}**: ${it.totalShares} shares @ $${String.format(java.util.Locale.US, "%.2f", it.currentPrice)} (P&L: $profitStr)"
                                     }
                                 newMessages.add(
                                     ChatContent.Text(markdown = "Here is what you are currently holding:\n$holdingsList", isUser = false),
