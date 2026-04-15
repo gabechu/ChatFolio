@@ -37,10 +37,10 @@ sealed class ChatInteractionResult {
 }
 
 /**
- * The Domain Layer agent responsible for giving the LLM its tools
- * and translating its raw responses into business outcomes.
+ * The Domain Layer orchestrator responsible for defining AI tools
+ * and routing raw AI decisions into clean business objects.
  */
-class ChatBotAgent
+class ChatInteraction
     @Inject
     constructor(
         private val llmEngine: LlmEngine,
@@ -110,7 +110,6 @@ class ChatBotAgent
             conversationHistory: List<ChatMessage>,
         ): ChatInteractionResult {
             try {
-                // Append the new message to history
                 val fullHistory = conversationHistory + ChatMessage("user", messageText)
 
                 val response =
@@ -119,66 +118,28 @@ class ChatBotAgent
                         tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool),
                     )
 
-                // See if the AI tried to invoke a tool
                 val toolCalls = response.toolCalls
+
+                // Route traffic directly to our isolated central ChatToolParsers
 
                 val transactionCalls = toolCalls?.filter { it.name == TOOL_ADD_TRANSACTION }
                 if (!transactionCalls.isNullOrEmpty()) {
-                    val parsedTrades =
-                        transactionCalls.map {
-                            val parsedTicker = it.arguments["ticker"]?.toString() ?: "UNKNOWN"
-                            val parsedCurrency = it.arguments["currency"]?.toString()
-
-                            val resolvedCurrency =
-                                if (parsedCurrency.isNullOrBlank() && parsedTicker != "UNKNOWN") {
-                                    marketDataRepository.getLatestPrice(parsedTicker).currency
-                                } else {
-                                    parsedCurrency ?: "AUD"
-                                }
-
-                            ChatInteractionResult.ParsedTrade(
-                                ticker = parsedTicker,
-                                action = it.arguments["action"]?.toString() ?: "BUY",
-                                shares = it.arguments["shares"]?.toString()?.toDoubleOrNull() ?: 0.0,
-                                price = it.arguments["price"]?.toString()?.toDoubleOrNull() ?: 0.0,
-                                date =
-                                    try {
-                                        val dStr = it.arguments["date"]?.toString()
-                                        if (dStr != null) java.time.LocalDate.parse(dStr).atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond() * 1000 else null
-                                    } catch (e: Exception) {
-                                        null
-                                    },
-                                currency = resolvedCurrency,
-                            )
-                        }
-                    return ChatInteractionResult.ParsedTransactions(parsedTrades)
+                    return transactionCalls.parseAddTransactionCalls(marketDataRepository)
                 }
 
-                val showPortfolioCall = toolCalls?.firstOrNull { it.name == TOOL_SHOW_PORTFOLIO }
-                if (showPortfolioCall != null) {
-                    val displayCurrency = showPortfolioCall.arguments["currency"]?.toString() ?: "AUD"
-                    return ChatInteractionResult.ShowPortfolio(displayCurrency)
+                toolCalls?.firstOrNull { it.name == TOOL_SHOW_PORTFOLIO }?.let {
+                    return it.parseShowPortfolioCall()
                 }
 
-                val deleteCall = toolCalls?.firstOrNull { it.name == TOOL_DELETE_TRANSACTION }
-                if (deleteCall != null) {
-                    return ChatInteractionResult.DeleteTransaction(
-                        ticker = deleteCall.arguments["ticker"]?.toString() ?: "UNKNOWN",
-                        action = deleteCall.arguments["action"]?.toString() ?: "BUY",
-                    )
+                toolCalls?.firstOrNull { it.name == TOOL_DELETE_TRANSACTION }?.let {
+                    return it.parseDeleteTransactionCall()
                 }
 
-                val updateCall = toolCalls?.firstOrNull { it.name == TOOL_UPDATE_TRANSACTION }
-                if (updateCall != null) {
-                    return ChatInteractionResult.UpdateTransaction(
-                        ticker = updateCall.arguments["ticker"]?.toString() ?: "UNKNOWN",
-                        action = updateCall.arguments["action"]?.toString() ?: "BUY",
-                        newShares = updateCall.arguments["newShares"]?.toString()?.toDoubleOrNull() ?: 0.0,
-                        newPrice = updateCall.arguments["newPrice"]?.toString()?.toDoubleOrNull() ?: 0.0,
-                    )
+                toolCalls?.firstOrNull { it.name == TOOL_UPDATE_TRANSACTION }?.let {
+                    return it.parseUpdateTransactionCall()
                 }
 
-                // Otherwise, it's a standard text reply
+                // Standard text reply buffer
                 return ChatInteractionResult.TextReply(response.textResponse ?: "")
             } catch (e: Exception) {
                 Timber.e(e, "Error communicating with LLM")
@@ -186,10 +147,6 @@ class ChatBotAgent
             }
         }
 
-        /**
-         * Persists a confirmed list of trades to the local database.
-         * This keeps the full trade lifecycle (parse → confirm → persist) owned by the domain layer.
-         */
         suspend fun persistTrades(trades: List<ChatInteractionResult.ParsedTrade>) {
             trades.forEach { trade ->
                 portfolioRepository.addTransaction(

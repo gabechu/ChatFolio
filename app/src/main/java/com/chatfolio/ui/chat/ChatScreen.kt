@@ -72,6 +72,11 @@ fun ChatScreen(
                             },
                         )
                     }
+                    is ChatContent.HoldingsTableCard -> {
+                        com.chatfolio.ui.cards.HoldingsTableCard(
+                            liveHoldings = content.liveHoldings,
+                        )
+                    }
                 }
             }
 

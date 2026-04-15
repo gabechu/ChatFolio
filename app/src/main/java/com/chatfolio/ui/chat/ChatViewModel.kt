@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chatfolio.data.repository.PortfolioRepository
 import com.chatfolio.data.repository.SettingsRepository
-import com.chatfolio.domain.usecase.ChatBotAgent
+import com.chatfolio.domain.usecase.ChatInteraction
 import com.chatfolio.domain.usecase.ChatInteractionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +24,7 @@ class ChatViewModel
     @Inject
     constructor(
         private val portfolioRepository: PortfolioRepository,
-        private val chatBotAgent: ChatBotAgent,
+        private val chatInteraction: ChatInteraction,
         private val settingsRepository: SettingsRepository,
         private val portfolioManager: com.chatfolio.domain.usecase.PortfolioManager,
     ) : ViewModel() {
@@ -60,7 +60,7 @@ class ChatViewModel
                         }
 
                     // Send the message to the AI via our Domain Agent
-                    val result = chatBotAgent.sendMessage(messageText, history)
+                    val result = chatInteraction.sendMessage(messageText, history)
 
                     // Update UI with response
                     val newMessages = _uiState.value.messages.toMutableList()
@@ -97,22 +97,8 @@ class ChatViewModel
                                         displayCurrency = result.displayCurrency,
                                     ),
                                 )
-                                val holdingsList =
-                                    liveHoldings.joinToString("\n") {
-                                        val profitStr =
-                                            if (it.gainLoss >= 0) {
-                                                "+$${String.format(
-                                                    java.util.Locale.US,
-                                                    "%.2f",
-                                                    it.gainLoss,
-                                                )}"
-                                            } else {
-                                                "-$${String.format(java.util.Locale.US, "%.2f", -it.gainLoss)}"
-                                            }
-                                        "- **${it.ticker}**: ${it.totalShares} shares @ $${String.format(java.util.Locale.US, "%.2f", it.currentPrice)} (P&L: $profitStr)"
-                                    }
                                 newMessages.add(
-                                    ChatContent.Text(markdown = "Here is what you are currently holding:\n$holdingsList", isUser = false),
+                                    ChatContent.HoldingsTableCard(liveHoldings = liveHoldings),
                                 )
                             }
                         }
@@ -149,9 +135,8 @@ class ChatViewModel
         fun saveTransactions(trades: List<com.chatfolio.domain.usecase.ChatInteractionResult.ParsedTrade>) {
             viewModelScope.launch {
                 try {
-                    // Delegate to the domain layer — ChatBotAgent owns the full trade lifecycle
-                    chatBotAgent.persistTrades(trades)
-
+                    // Delegate to the domain layer — ChatInteraction owns the full trade lifecycle
+                    chatInteraction.persistTrades(trades)
                     val newMessages = _uiState.value.messages.toMutableList()
                     newMessages.add(ChatContent.Text(markdown = "✅ Successfully saved **${trades.size}** trades.", isUser = false))
                     _uiState.value = _uiState.value.copy(messages = newMessages)

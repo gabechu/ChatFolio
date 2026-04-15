@@ -7,6 +7,8 @@
 - **Live Valuations Integration:** Connected the existing static portfolio to live Yahoo Finance market valuations dynamically within the Compose UI. Removed complex static P&L color logic to enforce minimalist, basic UI user preferences.
 - **Dynamic International Currencies:** Destroyed hardcoded USD/AUD assumptions in the model. The Portfolio Engine now seamlessly crosses any holding's native currency against any target request from the Agent (e.g., `AUDEUR=X`), parsing generic strings mathematically. 
 - **LLM Tool Fallback Intelligence:** Bound `MarketDataRepository` directly into `ChatBotAgent`. If the AI fails to determine a transaction's native currency, the backend automatically halts persistence until the stock's actual real-world reporting currency is extracted safely from Yahoo, eliminating hallucinated defaults.
+- **Code Readability UI Refactor:** Ripped raw string-manipulation logic out of the `ChatViewModel` state, and built a strictly-typed `HoldingsTableCard` Compose UI layout to seamlessly format dynamic tables without corrupting business logic layers. 
+- **AI Agent Abstraction:** Decoupled `ChatBotAgent` entirely. Stripped its JSON-mapping logic strictly into an external `ChatToolParsers` library, and refactored the parent class into an enterprise-grade pure logic orchestrator named `ChatInteraction`.
 - **Domain Layer Abstraction:** Extracted deep technical debt inside `PortfolioManager` into a cleanly abstracted `MarketDataRepository`, decoupling Room caching and Ktor network polling from mathematical execution, satisfying SOLID Design and DRY rules.
 - **Strict Testing Pipelines:** `PortfolioManagerTest` and `MarketDataRepositoryTest` separated, and rigorously tested up to Continuous Integration standards.
 
