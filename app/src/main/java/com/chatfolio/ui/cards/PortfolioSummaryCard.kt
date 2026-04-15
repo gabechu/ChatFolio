@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -20,8 +20,11 @@ import java.util.Locale
 
 @Composable
 fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
-    val audFormat = java.text.NumberFormat.getCurrencyInstance(Locale("en", "AU"))
-    val usdFormat = java.text.NumberFormat.getCurrencyInstance(Locale("en", "US"))
+    val currencyStr = content.displayCurrency.uppercase(Locale.getDefault())
+    val format =
+        java.text.NumberFormat.getCurrencyInstance().apply {
+            currency = java.util.Currency.getInstance(currencyStr)
+        }
 
     Card(
         modifier =
@@ -35,37 +38,32 @@ fun PortfolioSummaryCard(content: ChatContent.PortfolioSummaryCard) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Global Portfolio Valuation",
+                text = "Global Portfolio Valuation ($currencyStr)",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Bottom) {
-                if (content.displayCurrency.equals("USD", ignoreCase = true)) {
-                    Text(
-                        text = usdFormat.format(content.totalValueUsd),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "USD",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Text(
-                        text = audFormat.format(content.totalValueAud),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "AUD",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = format.format(content.totalValue),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column {
+                Text(
+                    text = "Total Invested",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = format.format(content.totalInvested),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }

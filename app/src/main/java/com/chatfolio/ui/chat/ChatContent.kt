@@ -10,10 +10,8 @@ sealed class ChatContent {
     ) : ChatContent()
 
     data class PortfolioSummaryCard(
-        val totalValueAud: Double,
-        val totalValueUsd: Double,
-        val totalInvestedAud: Double,
-        val totalInvestedUsd: Double,
+        val totalValue: Double,
+        val totalInvested: Double,
         val displayCurrency: String,
     ) : ChatContent()
 
