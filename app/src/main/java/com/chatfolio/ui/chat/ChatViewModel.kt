@@ -40,110 +40,127 @@ class ChatViewModel
         }
 
         fun sendMessage(messageText: String) {
-            val currentMessages = _uiState.value.messages.toMutableList()
-            currentMessages.add(ChatContent.Text(markdown = messageText, isUser = true))
-            _uiState.value = _uiState.value.copy(messages = currentMessages, isTyping = true)
+            appendUserMessage(messageText)
 
             viewModelScope.launch {
                 try {
-                    // Determine conversation history from UI State
-                    val history =
-                        _uiState.value.messages.mapNotNull { content ->
-                            when (content) {
-                                is ChatContent.Text -> {
-                                    com.chatfolio.domain.port.ChatMessage(
-                                        role = if (content.isUser) "user" else "model",
-                                        content = content.markdown,
-                                    )
-                                }
-                                is ChatContent.BatchTransactionConfirmCard -> {
-                                    val tradesString = content.trades.joinToString { "${it.action} ${it.shares} ${it.ticker}" }
-                                    com.chatfolio.domain.port.ChatMessage(
-                                        role = "model",
-                                        content =
-                                            "I have presented a confirmation card for the following pending trades: " +
-                                                "$tradesString. Awaiting user action.",
-                                    )
-                                }
-                                else -> null
-                            }
-                        }
-
-                    // Send the message to the AI via our Domain Agent
+                    val history = _uiState.value.messages.toLlmHistory()
                     val results = chatInteraction.sendMessage(messageText, history)
 
-                    // Update UI with response
-                    val newMessages = _uiState.value.messages.toMutableList()
-
-                    results.forEach { result ->
-                        when (result) {
-                            is ChatInteractionResult.TextReply -> {
-                                newMessages.add(ChatContent.Text(markdown = result.text, isUser = false))
-                            }
-                            is ChatInteractionResult.ParsedTransactions -> {
-                                newMessages.add(
-                                    ChatContent.BatchTransactionConfirmCard(
-                                        trades = result.trades,
-                                    ),
-                                )
-                            }
-                            is ChatInteractionResult.Error -> {
-                                newMessages.add(ChatContent.Text(markdown = "System: Error - ${result.message}", isUser = false))
-                            }
-                            is ChatInteractionResult.ShowPortfolio -> {
-                                val liveHoldings = portfolioManager.getLiveHoldings()
-                                if (liveHoldings.isEmpty()) {
-                                    newMessages.add(
-                                        ChatContent.Text(
-                                            markdown = "Looks like your portfolio is currently empty. Try saving a trade first!",
-                                            isUser = false,
-                                        ),
-                                    )
-                                } else {
-                                    val globalSummary = portfolioManager.getGlobalSummary(result.displayCurrency)
-                                    newMessages.add(
-                                        ChatContent.PortfolioSummaryCard(
-                                            totalValue = globalSummary.totalValue,
-                                            totalInvested = globalSummary.totalInvested,
-                                            displayCurrency = result.displayCurrency,
-                                        ),
-                                    )
-                                    newMessages.add(
-                                        ChatContent.HoldingsTableCard(liveHoldings = liveHoldings),
-                                    )
-                                }
-                            }
-                            is ChatInteractionResult.DeleteTransaction -> {
-                                portfolioRepository.deleteLatestTransaction(result.ticker, result.action)
-                                newMessages.add(
-                                    ChatContent.Text(
-                                        markdown = "🗑️ Successfully **deleted** your latest ${result.action} of ${result.ticker}.",
-                                        isUser = false,
-                                    ),
-                                )
-                            }
-                            is ChatInteractionResult.UpdateTransaction -> {
-                                portfolioRepository.updateLatestTransaction(result.ticker, result.action, result.newShares, result.newPrice)
-                                newMessages.add(
-                                    ChatContent.Text(
-                                        markdown =
-                                            "✏️ Successfully **updated** your latest ${result.action} of ${result.ticker} " +
-                                                "to ${result.newShares} shares at $${result.newPrice}.",
-                                        isUser = false,
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    _uiState.value = _uiState.value.copy(messages = newMessages, isTyping = false)
+                    val uiCards = processInteractionResults(results)
+                    appendBotMessages(uiCards)
                 } catch (e: Exception) {
-                    Timber.e(e, "Error processing message")
-                    val errorMessages = _uiState.value.messages.toMutableList()
-                    errorMessages.add(ChatContent.Text(markdown = "System: Error - ${e.message}", isUser = false))
-                    _uiState.value = _uiState.value.copy(messages = errorMessages, isTyping = false)
+                    handleError(e)
                 }
             }
+        }
+
+        private fun appendUserMessage(text: String) {
+            val currentMessages = _uiState.value.messages.toMutableList()
+            currentMessages.add(ChatContent.Text(markdown = text, isUser = true))
+            _uiState.value = _uiState.value.copy(messages = currentMessages, isTyping = true)
+        }
+
+        private fun appendBotMessages(cards: List<ChatContent>) {
+            val newMessages = _uiState.value.messages.toMutableList()
+            newMessages.addAll(cards)
+            _uiState.value = _uiState.value.copy(messages = newMessages, isTyping = false)
+        }
+
+        private fun handleError(e: Exception) {
+            Timber.e(e, "Error processing message")
+            val errorMessages = _uiState.value.messages.toMutableList()
+            errorMessages.add(ChatContent.Text(markdown = "System: Error - ${e.message}", isUser = false))
+            _uiState.value = _uiState.value.copy(messages = errorMessages, isTyping = false)
+        }
+
+        private fun List<ChatContent>.toLlmHistory(): List<com.chatfolio.domain.port.ChatMessage> {
+            return this.mapNotNull { content ->
+                when (content) {
+                    is ChatContent.Text -> {
+                        com.chatfolio.domain.port.ChatMessage(
+                            role = if (content.isUser) "user" else "model",
+                            content = content.markdown,
+                        )
+                    }
+                    is ChatContent.BatchTransactionConfirmCard -> {
+                        val tradesString = content.trades.joinToString { "${it.action} ${it.shares} ${it.ticker}" }
+                        com.chatfolio.domain.port.ChatMessage(
+                            role = "model",
+                            content =
+                                "I have presented a confirmation card for the following pending trades: " +
+                                    "$tradesString. Awaiting user action.",
+                        )
+                    }
+                    else -> null
+                }
+            }
+        }
+
+        private suspend fun processInteractionResults(results: List<ChatInteractionResult>): List<ChatContent> {
+            val generatedCards = mutableListOf<ChatContent>()
+
+            results.forEach { result ->
+                when (result) {
+                    is ChatInteractionResult.TextReply -> {
+                        generatedCards.add(ChatContent.Text(markdown = result.text, isUser = false))
+                    }
+                    is ChatInteractionResult.ParsedTransactions -> {
+                        generatedCards.add(
+                            ChatContent.BatchTransactionConfirmCard(
+                                trades = result.trades,
+                            ),
+                        )
+                    }
+                    is ChatInteractionResult.Error -> {
+                        generatedCards.add(ChatContent.Text(markdown = "System: Error - ${result.message}", isUser = false))
+                    }
+                    is ChatInteractionResult.ShowPortfolio -> {
+                        val liveHoldings = portfolioManager.getLiveHoldings()
+                        if (liveHoldings.isEmpty()) {
+                            generatedCards.add(
+                                ChatContent.Text(
+                                    markdown = "Looks like your portfolio is currently empty. Try saving a trade first!",
+                                    isUser = false,
+                                ),
+                            )
+                        } else {
+                            val globalSummary = portfolioManager.getGlobalSummary(result.displayCurrency)
+                            generatedCards.add(
+                                ChatContent.PortfolioSummaryCard(
+                                    totalValue = globalSummary.totalValue,
+                                    totalInvested = globalSummary.totalInvested,
+                                    displayCurrency = result.displayCurrency,
+                                ),
+                            )
+                            generatedCards.add(
+                                ChatContent.HoldingsTableCard(liveHoldings = liveHoldings),
+                            )
+                        }
+                    }
+                    is ChatInteractionResult.DeleteTransaction -> {
+                        portfolioRepository.deleteLatestTransaction(result.ticker, result.action)
+                        generatedCards.add(
+                            ChatContent.Text(
+                                markdown = "🗑️ Successfully **deleted** your latest ${result.action} of ${result.ticker}.",
+                                isUser = false,
+                            ),
+                        )
+                    }
+                    is ChatInteractionResult.UpdateTransaction -> {
+                        portfolioRepository.updateLatestTransaction(result.ticker, result.action, result.newShares, result.newPrice)
+                        generatedCards.add(
+                            ChatContent.Text(
+                                markdown =
+                                    "✏️ Successfully **updated** your latest ${result.action} of ${result.ticker} " +
+                                        "to ${result.newShares} shares at $${result.newPrice}.",
+                                isUser = false,
+                            ),
+                        )
+                    }
+                }
+            }
+            return generatedCards
         }
 
         fun saveTransactions(trades: List<com.chatfolio.domain.usecase.ChatInteractionResult.ParsedTrade>) {
