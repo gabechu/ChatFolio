@@ -67,7 +67,7 @@ class ChatInteraction
                         LlmToolParameter("shares", "NUMBER", "The number of shares"),
                         LlmToolParameter("price", "NUMBER", "The price per share"),
                         LlmToolParameter("date", "STRING", "Optional ISO-8601 date of the transaction (e.g. 2023-10-01) if in the past"),
-                        LlmToolParameter("currency", "STRING", "The currency of the transaction. Default to 'AUD' if omitted."),
+                        LlmToolParameter("currency", "STRING", "The currency of the transaction. Omit if unknown or unmentioned."),
                     ),
             )
 

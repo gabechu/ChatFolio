@@ -13,6 +13,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +28,8 @@ fun BatchTransactionConfirmCard(
     onSave: () -> Unit = {},
     onCancel: () -> Unit = {},
 ) {
+    var isResponded by remember { mutableStateOf(false) }
+
     Card(
         modifier =
             Modifier
@@ -60,7 +66,7 @@ fun BatchTransactionConfirmCard(
                         fontWeight = FontWeight.Bold,
                         color = actionColor,
                     )
-                    Text(text = "@ $${trade.price}")
+                    Text(text = "@ $${trade.price} ${trade.currency}")
                 }
             }
 
@@ -74,12 +80,22 @@ fun BatchTransactionConfirmCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 OutlinedButton(
-                    onClick = onCancel,
+                    onClick = {
+                        isResponded = true
+                        onCancel()
+                    },
                     modifier = Modifier.padding(end = 8.dp),
+                    enabled = !isResponded,
                 ) {
                     Text("Cancel")
                 }
-                Button(onClick = onSave) {
+                Button(
+                    onClick = {
+                        isResponded = true
+                        onSave()
+                    },
+                    enabled = !isResponded,
+                ) {
                     Text("Save All Trades")
                 }
             }

@@ -75,6 +75,11 @@ com.chatfolio
 
 ## Key Architectural Rules
 
+### Simplicity & Readability (KISS & YAGNI)
+- **Do not add unnecessary functions:** Avoid creating new abstractions, batch database operators, or complex wrapper functions unless strictly required to solve a proven, severe bottleneck.
+- **Readability over premature optimization:** Standard, linear flows (like updating databases in a standard loop) are highly preferred over complex batch abstractions if the actual usage scale (e.g., chat-driven inputs) does not demand it.
+- **Keep state local if possible:** Use the simplest mechanism to solve the problem. For example, use a local `remember { mutableStateOf() }` for transient graphical states (like disabling a button after click) rather than complex ViewModel orchestration, system prompt injection, or domain modeling.
+
 ### SOLID & OOP Principles
 - **Encapsulation**: Hide internal state. Expose only what is necessary via public interfaces and immutable data structures (e.g., exposing `StateFlow` instead of `MutableStateFlow`).
 - **Single Responsibility (SRP)**: Each class/function should have only one reason to change. Business logic, data fetching, and persistence MUST be separated.
