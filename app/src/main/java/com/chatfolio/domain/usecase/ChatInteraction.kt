@@ -108,7 +108,7 @@ class ChatInteraction
         suspend fun sendMessage(
             messageText: String,
             conversationHistory: List<ChatMessage>,
-        ): ChatInteractionResult {
+        ): List<ChatInteractionResult> {
             try {
                 val fullHistory = conversationHistory + ChatMessage("user", messageText)
 
@@ -121,29 +121,38 @@ class ChatInteraction
                 val toolCalls = response.toolCalls
 
                 // Route traffic directly to our isolated central ChatToolParsers
+                val results = mutableListOf<ChatInteractionResult>()
 
                 val transactionCalls = toolCalls?.filter { it.name == TOOL_ADD_TRANSACTION }
                 if (!transactionCalls.isNullOrEmpty()) {
-                    return transactionCalls.parseAddTransactionCalls(marketDataRepository)
+                    results.add(transactionCalls.parseAddTransactionCalls(marketDataRepository))
                 }
 
                 toolCalls?.firstOrNull { it.name == TOOL_SHOW_PORTFOLIO }?.let {
-                    return it.parseShowPortfolioCall()
+                    results.add(it.parseShowPortfolioCall())
                 }
 
                 toolCalls?.firstOrNull { it.name == TOOL_DELETE_TRANSACTION }?.let {
-                    return it.parseDeleteTransactionCall()
+                    results.add(it.parseDeleteTransactionCall())
                 }
 
                 toolCalls?.firstOrNull { it.name == TOOL_UPDATE_TRANSACTION }?.let {
-                    return it.parseUpdateTransactionCall()
+                    results.add(it.parseUpdateTransactionCall())
                 }
 
                 // Standard text reply buffer
-                return ChatInteractionResult.TextReply(response.textResponse ?: "")
+                if (!response.textResponse.isNullOrBlank()) {
+                    results.add(ChatInteractionResult.TextReply(response.textResponse))
+                }
+
+                if (results.isEmpty()) {
+                    results.add(ChatInteractionResult.TextReply("I couldn't process that."))
+                }
+
+                return results
             } catch (e: Exception) {
                 Timber.e(e, "Error communicating with LLM")
-                return ChatInteractionResult.Error(e.message ?: "Unknown error occurred")
+                return listOf(ChatInteractionResult.Error(e.message ?: "Unknown error occurred"))
             }
         }
 

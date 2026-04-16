@@ -45,10 +45,11 @@ class ChatInteractionTest {
                     toolCalls = null,
                 )
 
-            val result = chatInteraction.sendMessage("hi", emptyList())
+            val results = chatInteraction.sendMessage("hi", emptyList())
 
-            assertThat(result).isInstanceOf(ChatInteractionResult.TextReply::class.java)
-            val reply = result as ChatInteractionResult.TextReply
+            assertThat(results).hasSize(1)
+            assertThat(results[0]).isInstanceOf(ChatInteractionResult.TextReply::class.java)
+            val reply = results[0] as ChatInteractionResult.TextReply
             assertThat(reply.text).isEqualTo("Hello World! I am an AI.")
         }
 
@@ -64,10 +65,11 @@ class ChatInteractionTest {
                         ),
                 )
 
-            val result = chatInteraction.sendMessage("show me my portfolio", emptyList())
+            val results = chatInteraction.sendMessage("show me my portfolio", emptyList())
 
-            assertThat(result).isInstanceOf(ChatInteractionResult.ShowPortfolio::class.java)
-            val showCall = result as ChatInteractionResult.ShowPortfolio
+            assertThat(results).hasSize(1)
+            assertThat(results[0]).isInstanceOf(ChatInteractionResult.ShowPortfolio::class.java)
+            val showCall = results[0] as ChatInteractionResult.ShowPortfolio
             assertThat(showCall.displayCurrency).isEqualTo("USD")
         }
 
@@ -76,10 +78,11 @@ class ChatInteractionTest {
         runTest {
             coEvery { llmEngine.sendMessage(any(), any()) } throws RuntimeException("Out of API credits!")
 
-            val result = chatInteraction.sendMessage("buy AAPL", emptyList())
+            val results = chatInteraction.sendMessage("buy AAPL", emptyList())
 
-            assertThat(result).isInstanceOf(ChatInteractionResult.Error::class.java)
-            val errorCall = result as ChatInteractionResult.Error
+            assertThat(results).hasSize(1)
+            assertThat(results[0]).isInstanceOf(ChatInteractionResult.Error::class.java)
+            val errorCall = results[0] as ChatInteractionResult.Error
             assertThat(errorCall.message).isEqualTo("Out of API credits!")
         }
 
@@ -95,10 +98,11 @@ class ChatInteractionTest {
                         ),
                 )
 
-            val result = chatInteraction.sendMessage("I bought apple", emptyList())
+            val results = chatInteraction.sendMessage("I bought apple", emptyList())
 
-            assertThat(result).isInstanceOf(ChatInteractionResult.ParsedTransactions::class.java)
-            val parseCall = result as ChatInteractionResult.ParsedTransactions
+            assertThat(results).hasSize(1)
+            assertThat(results[0]).isInstanceOf(ChatInteractionResult.ParsedTransactions::class.java)
+            val parseCall = results[0] as ChatInteractionResult.ParsedTransactions
             assertThat(parseCall.trades.size).isEqualTo(1)
             assertThat(parseCall.trades[0].ticker).isEqualTo("AAPL")
         }

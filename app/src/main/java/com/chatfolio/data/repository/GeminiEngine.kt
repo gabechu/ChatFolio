@@ -62,13 +62,16 @@ class GeminiEngine
                                 listOf(
                                     TextPart(
                                         "You are an expert financial portfolio assistant. If the user provides multiple transactions in a single message, " +
-                                            "YOU MUST CALL THE addTransaction FUNCTION MULTIPLE TIMES IN PARALLEL for each individual asset mentioned.",
+                                            "YOU MUST CALL THE addTransaction FUNCTION MULTIPLE TIMES IN PARALLEL for each individual asset mentioned.\n" +
+                                            "You can freely engage in ordinary conversation, answer financial inquiries, " +
+                                            "and provide market insights in plain text alongside your tool calls. " +
+                                            "DO NOT invoke tools unless the user explicitly commands a portfolio action.",
                                     ),
                                 ),
                         ),
                     generationConfig =
                         generationConfig {
-                            temperature = 0.2f
+                            temperature = 0.7f
                         },
                 )
             try {
@@ -118,8 +121,15 @@ class GeminiEngine
                         )
                     }
 
+                var textOutput: String? = null
+                try {
+                    textOutput = response.text
+                } catch (e: Exception) {
+                    // ignore
+                }
+
                 return LlmResponse(
-                    textResponse = response.text,
+                    textResponse = textOutput,
                     toolCalls = if (functionCalls.isEmpty()) null else functionCalls,
                 )
             } catch (e: Exception) {
