@@ -41,7 +41,7 @@ import com.chatfolio.ui.cards.TransactionItemCard
 fun SwipeableTransactionCard(
     item: TransactionWithTicker,
     onDelete: () -> Unit,
-    onEdit: (Double, Double) -> Unit,
+    onEdit: (Double, Double, String) -> Unit,
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
 
@@ -96,6 +96,7 @@ fun SwipeableTransactionCard(
     if (showEditDialog) {
         var tempShares by remember { mutableStateOf(item.transaction.shares.toString()) }
         var tempPrice by remember { mutableStateOf(item.transaction.pricePerShare.toString()) }
+        var tempCurrency by remember { mutableStateOf(item.transaction.currency) }
 
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
@@ -117,6 +118,13 @@ fun SwipeableTransactionCard(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = tempCurrency,
+                        onValueChange = { tempCurrency = it.uppercase() },
+                        label = { Text("Currency") },
+                        singleLine = true,
+                    )
                 }
             },
             confirmButton = {
@@ -124,12 +132,12 @@ fun SwipeableTransactionCard(
                     onClick = {
                         val shares = tempShares.toDoubleOrNull()
                         val price = tempPrice.toDoubleOrNull()
-                        if (shares != null && price != null) {
-                            onEdit(shares, price)
+                        if (shares != null && price != null && tempCurrency.isNotBlank()) {
+                            onEdit(shares, price, tempCurrency)
                             showEditDialog = false
                         }
                     },
-                    enabled = tempShares.toDoubleOrNull() != null && tempPrice.toDoubleOrNull() != null,
+                    enabled = tempShares.toDoubleOrNull() != null && tempPrice.toDoubleOrNull() != null && tempCurrency.isNotBlank(),
                 ) {
                     Text("Save")
                 }
