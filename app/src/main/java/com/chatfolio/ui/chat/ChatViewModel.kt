@@ -70,65 +70,69 @@ class ChatViewModel
                         }
 
                     // Send the message to the AI via our Domain Agent
-                    val result = chatInteraction.sendMessage(messageText, history)
+                    val results = chatInteraction.sendMessage(messageText, history)
 
                     // Update UI with response
                     val newMessages = _uiState.value.messages.toMutableList()
 
-                    when (result) {
-                        is ChatInteractionResult.TextReply -> {
-                            newMessages.add(ChatContent.Text(markdown = result.text, isUser = false))
-                        }
-                        is ChatInteractionResult.ParsedTransactions -> {
-                            newMessages.add(
-                                ChatContent.BatchTransactionConfirmCard(
-                                    trades = result.trades,
-                                ),
-                            )
-                        }
-                        is ChatInteractionResult.Error -> {
-                            newMessages.add(ChatContent.Text(markdown = "System: Error - ${result.message}", isUser = false))
-                        }
-                        is ChatInteractionResult.ShowPortfolio -> {
-                            val liveHoldings = portfolioManager.getLiveHoldings()
-                            if (liveHoldings.isEmpty()) {
+                    results.forEach { result ->
+                        when (result) {
+                            is ChatInteractionResult.TextReply -> {
+                                newMessages.add(ChatContent.Text(markdown = result.text, isUser = false))
+                            }
+                            is ChatInteractionResult.ParsedTransactions -> {
+                                newMessages.add(
+                                    ChatContent.BatchTransactionConfirmCard(
+                                        trades = result.trades,
+                                    ),
+                                )
+                            }
+                            is ChatInteractionResult.Error -> {
+                                newMessages.add(ChatContent.Text(markdown = "System: Error - ${result.message}", isUser = false))
+                            }
+                            is ChatInteractionResult.ShowPortfolio -> {
+                                val liveHoldings = portfolioManager.getLiveHoldings()
+                                if (liveHoldings.isEmpty()) {
+                                    newMessages.add(
+                                        ChatContent.Text(
+                                            markdown = "Looks like your portfolio is currently empty. Try saving a trade first!",
+                                            isUser = false,
+                                        ),
+                                    )
+                                } else {
+                                    val globalSummary = portfolioManager.getGlobalSummary(result.displayCurrency)
+                                    newMessages.add(
+                                        ChatContent.PortfolioSummaryCard(
+                                            totalValue = globalSummary.totalValue,
+                                            totalInvested = globalSummary.totalInvested,
+                                            displayCurrency = result.displayCurrency,
+                                        ),
+                                    )
+                                    newMessages.add(
+                                        ChatContent.HoldingsTableCard(liveHoldings = liveHoldings),
+                                    )
+                                }
+                            }
+                            is ChatInteractionResult.DeleteTransaction -> {
+                                portfolioRepository.deleteLatestTransaction(result.ticker, result.action)
                                 newMessages.add(
                                     ChatContent.Text(
-                                        markdown = "Looks like your portfolio is currently empty. Try saving a trade first!",
+                                        markdown = "🗑️ Successfully **deleted** your latest ${result.action} of ${result.ticker}.",
                                         isUser = false,
                                     ),
                                 )
-                            } else {
-                                val globalSummary = portfolioManager.getGlobalSummary(result.displayCurrency)
+                            }
+                            is ChatInteractionResult.UpdateTransaction -> {
+                                portfolioRepository.updateLatestTransaction(result.ticker, result.action, result.newShares, result.newPrice)
                                 newMessages.add(
-                                    ChatContent.PortfolioSummaryCard(
-                                        totalValue = globalSummary.totalValue,
-                                        totalInvested = globalSummary.totalInvested,
-                                        displayCurrency = result.displayCurrency,
+                                    ChatContent.Text(
+                                        markdown =
+                                            "✏️ Successfully **updated** your latest ${result.action} of ${result.ticker} " +
+                                                "to ${result.newShares} shares at $${result.newPrice}.",
+                                        isUser = false,
                                     ),
                                 )
-                                newMessages.add(
-                                    ChatContent.HoldingsTableCard(liveHoldings = liveHoldings),
-                                )
                             }
-                        }
-                        is ChatInteractionResult.DeleteTransaction -> {
-                            portfolioRepository.deleteLatestTransaction(result.ticker, result.action)
-                            newMessages.add(
-                                ChatContent.Text(
-                                    markdown = "🗑️ Successfully **deleted** your latest ${result.action} of ${result.ticker}.",
-                                    isUser = false,
-                                ),
-                            )
-                        }
-                        is ChatInteractionResult.UpdateTransaction -> {
-                            portfolioRepository.updateLatestTransaction(result.ticker, result.action, result.newShares, result.newPrice)
-                            newMessages.add(
-                                ChatContent.Text(
-                                    markdown = "✏️ Successfully **updated** your latest ${result.action} of ${result.ticker} to ${result.newShares} shares at $${result.newPrice}.",
-                                    isUser = false,
-                                ),
-                            )
                         }
                     }
 
