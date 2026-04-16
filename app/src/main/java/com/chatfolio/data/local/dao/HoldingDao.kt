@@ -21,6 +21,9 @@ interface HoldingDao {
         ticker: String,
     ): HoldingEntity?
 
+    @Query("SELECT * FROM holdings WHERE id = :holdingId")
+    suspend fun getHoldingById(holdingId: Int): HoldingEntity?
+
     @androidx.room.Update
     suspend fun updateHolding(holding: HoldingEntity)
 
