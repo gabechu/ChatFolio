@@ -52,6 +52,7 @@ class ChatInteraction
             private const val TOOL_SHOW_PORTFOLIO = "showPortfolio"
             private const val TOOL_DELETE_TRANSACTION = "deleteTransaction"
             private const val TOOL_UPDATE_TRANSACTION = "updateTransaction"
+            private const val TOOL_SEARCH_TRANSACTIONS = "searchTransactions"
         }
 
         private val addTransactionTool =
@@ -105,20 +106,66 @@ class ChatInteraction
                     ),
             )
 
+        private val searchTransactionsTool =
+            LlmTool(
+                name = TOOL_SEARCH_TRANSACTIONS,
+                description = "Searches the user's local database for historical transactions. Use this to count trades or find specific past trades based on date or ticker.",
+                parameters =
+                    listOf(
+                        LlmToolParameter("ticker", "STRING", "Optional ticker symbol to filter by"),
+                        LlmToolParameter("startDate", "NUMBER", "Optional start date in Unix Epoch milliseconds (e.g., 1704067200000)"),
+                        LlmToolParameter("endDate", "NUMBER", "Optional end date in Unix Epoch milliseconds"),
+                    ),
+            )
+
         suspend fun sendMessage(
             messageText: String,
             conversationHistory: List<ChatMessage>,
         ): List<ChatInteractionResult> {
             try {
-                val fullHistory = conversationHistory + ChatMessage("user", messageText)
+                var currentHistory = conversationHistory + ChatMessage("user", content = messageText)
 
-                val response =
+                var response =
                     llmEngine.sendMessage(
-                        messages = fullHistory,
-                        tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool),
+                        messages = currentHistory,
+                        tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool, searchTransactionsTool),
                     )
 
-                val toolCalls = response.toolCalls
+                var toolCalls = response.toolCalls
+
+                // MULTI-TURN AGENT LOOP: Intercept data requests, fetch SQL, and recurse to LLM
+                if (toolCalls != null && toolCalls.any { it.name == TOOL_SEARCH_TRANSACTIONS }) {
+                    val searchCall = toolCalls.first { it.name == TOOL_SEARCH_TRANSACTIONS }
+                    val ticker = searchCall.arguments["ticker"]?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+
+                    val startDateRaw = searchCall.arguments["startDate"]
+                    val startDate = if (startDateRaw is Number) startDateRaw.toLong() else startDateRaw?.toString()?.toLongOrNull()
+
+                    val endDateRaw = searchCall.arguments["endDate"]
+                    val endDate = if (endDateRaw is Number) endDateRaw.toLong() else endDateRaw?.toString()?.toLongOrNull()
+
+                    val results = portfolioRepository.searchTransactions(ticker, startDate, endDate)
+                    val resultJsonMap =
+                        mapOf(
+                            "count" to results.size,
+                            "transactions" to
+                                results.take(50).joinToString("\n") {
+                                    "[${it.transaction.date}] ${it.transaction.type} ${it.transaction.shares} of ${it.ticker} @ ${it.transaction.pricePerShare}"
+                                },
+                        )
+
+                    // Inject the Model's Tool Request and our System's Tool Response directly into history
+                    currentHistory = currentHistory + ChatMessage(role = "model", functionCall = searchCall)
+                    currentHistory = currentHistory + ChatMessage(role = "function", functionResponseName = searchCall.name, functionResponse = resultJsonMap)
+
+                    // Re-fire LLM engine
+                    response =
+                        llmEngine.sendMessage(
+                            messages = currentHistory,
+                            tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool, searchTransactionsTool),
+                        )
+                    toolCalls = response.toolCalls
+                }
 
                 // Route traffic directly to our isolated central ChatToolParsers
                 val results = mutableListOf<ChatInteractionResult>()
@@ -141,8 +188,9 @@ class ChatInteraction
                 }
 
                 // Standard text reply buffer
-                if (!response.textResponse.isNullOrBlank()) {
-                    results.add(ChatInteractionResult.TextReply(response.textResponse))
+                val textOut = response.textResponse
+                if (!textOut.isNullOrBlank()) {
+                    results.add(ChatInteractionResult.TextReply(textOut))
                 }
 
                 if (results.isEmpty()) {

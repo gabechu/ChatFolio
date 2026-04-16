@@ -1,9 +1,12 @@
 package com.chatfolio.domain.port
 
 data class ChatMessage(
-    // "user", "model", or "system"
+    // "user", "model", or "function"
     val role: String,
-    val content: String,
+    val content: String? = null,
+    val functionCall: ToolCall? = null,
+    val functionResponseName: String? = null,
+    val functionResponse: Map<String, Any>? = null,
 )
 
 data class ToolCall(

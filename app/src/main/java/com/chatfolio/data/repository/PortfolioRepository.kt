@@ -22,6 +22,14 @@ class PortfolioRepository
 
         fun getGlobalLedger(): Flow<List<com.chatfolio.data.local.entity.TransactionWithTicker>> = transactionDao.getGlobalLedger()
 
+        suspend fun searchTransactions(
+            ticker: String?,
+            startDate: Long?,
+            endDate: Long?,
+        ): List<com.chatfolio.data.local.entity.TransactionWithTicker> {
+            return transactionDao.searchTransactions(ticker?.uppercase(), startDate, endDate)
+        }
+
         suspend fun createPortfolio(name: String) {
             portfolioDao.insertPortfolio(PortfolioEntity(name = name))
         }
