@@ -40,11 +40,12 @@ class ChatViewModel
         }
 
         fun sendMessage(messageText: String) {
+            // Snapshot the history BEFORE appending the active query to the UI state
+            val history = _uiState.value.messages.toLlmHistory()
             appendUserMessage(messageText)
 
             viewModelScope.launch {
                 try {
-                    val history = _uiState.value.messages.toLlmHistory()
                     val results = chatInteraction.sendMessage(messageText, history)
 
                     val uiCards = processInteractionResults(results)
