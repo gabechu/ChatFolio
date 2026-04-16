@@ -65,18 +65,7 @@ class ChatViewModel
                                                 "$tradesString. Awaiting user action.",
                                     )
                                 }
-                                is ChatContent.HoldingsTableCard -> {
-                                    com.chatfolio.domain.port.ChatMessage(
-                                        role = "model",
-                                        content = "I have displayed the portfolio holdings table.",
-                                    )
-                                }
-                                is ChatContent.PortfolioSummaryCard -> {
-                                    com.chatfolio.domain.port.ChatMessage(
-                                        role = "model",
-                                        content = "I have displayed the global portfolio summary.",
-                                    )
-                                }
+                                else -> null
                             }
                         }
 
