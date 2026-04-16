@@ -12,6 +12,13 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE holdingId = :holdingId ORDER BY date DESC")
     fun getTransactionsForHolding(holdingId: Int): Flow<List<TransactionEntity>>
 
+    @Query(
+        "SELECT transactions.*, holdings.ticker " +
+            "FROM transactions INNER JOIN holdings ON transactions.holdingId = holdings.id " +
+            "ORDER BY transactions.date DESC",
+    )
+    fun getGlobalLedger(): Flow<List<com.chatfolio.data.local.entity.TransactionWithTicker>>
+
     @Query("SELECT * FROM transactions WHERE holdingId = :holdingId ORDER BY date ASC")
     suspend fun getAllTransactionsAsc(holdingId: Int): List<TransactionEntity>
 
