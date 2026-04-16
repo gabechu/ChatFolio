@@ -1,7 +1,9 @@
-# Session 6 Checkpoint: Ledger Screen & Native Modifiers
+# Session 6 Checkpoint: Ledger Screen & Agentic Multi-Turn Queries
 
 ## Overview
-Re-architected ChatFolio to break away from the single-screen paradigm. Built a native Transactions Management Screen directly tapping into the Room Database via a Global Ledger Join. Following user review, expanded the Ledger to support native UI modifications (Edit/Delete).
+Re-architected ChatFolio to break away from the single-screen paradigm. Built a native Transactions Management Screen directly tapping into the Room Database via a Global Ledger Join, and expanded the Ledger to support native UI modifications (Edit/Delete). 
+
+We also upgraded the ChatFolio AI interaction model from a static tool-parser to a recursive, agentic framework. This enables the LLM to perform multi-turn reasoning by dynamically querying the local Room database to answer complex analytical questions.
 
 ## Key Accomplishments
 
@@ -18,10 +20,17 @@ Re-architected ChatFolio to break away from the single-screen paradigm. Built a 
 2.  **Edit Popovers:** Deployed standard `AlertDialog` inputs utilizing strict `KeyboardType.Decimal` parsing to let users clean up their historical logs.
 3.  **UI Segregation Refinement:** Aggressively decoupled UI components. Stored the pure visual data card in `ui/cards/TransactionItemCard.kt` while mapping complex UI states to `ui/transactions/SwipeableTransactionCard.kt`.
 
+### Agentic Multi-Turn Agent Loop
+1.  **Recursive Message Routing:** Implemented recursive message routing in the `ChatInteraction` domain layer, allowing the AI to autonomously fetch historical data and process it before returning a final user-facing response.
+2.  **LlmEngine Refactoring:** Expanded `LlmEngine` to structurally support function-calling protocols natively through Gemini.
+3.  **Extended DAO Methods:** Added capabilities to the SQL DAO to support granular AI data inquiries, such as searching transactions by date ranges or stock tickers.
+
 ## Current State
-- Branch `wchu/feat-transaction-modifiers` holds these enhancements seamlessly attached to the open `wchu/transactions-screen` PR pipeline!
+- The `wchu/feat-transaction-modifiers` branch holds UI enhancements.
+- The `wchu/feat-multi-turn-agent` branch contains the multi-turn recursive tool calling logic.
 - Clean KTlint enforcement and Unit tests verify standard operations.
 
 ## Next Session Priorities
-1.  Verify the PR merge consensus on main.
-2.  Assess remaining road map features for analytical metric displays.
+1.  Design and implement a cool app logo.
+2.  Verify the PR merge consensus on main.
+3.  Assess remaining road map features for analytical metric displays.
