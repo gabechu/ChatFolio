@@ -70,6 +70,9 @@ fun ChatScreen(
                             onSave = {
                                 viewModel.saveTransactions(content.trades)
                             },
+                            onCancel = {
+                                viewModel.cancelTransactions()
+                            },
                         )
                     }
                     is ChatContent.HoldingsTableCard -> {

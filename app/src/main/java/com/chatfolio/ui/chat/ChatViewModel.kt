@@ -49,13 +49,34 @@ class ChatViewModel
                     // Determine conversation history from UI State
                     val history =
                         _uiState.value.messages.mapNotNull { content ->
-                            if (content is ChatContent.Text) {
-                                com.chatfolio.domain.port.ChatMessage(
-                                    role = if (content.isUser) "user" else "model",
-                                    content = content.markdown,
-                                )
-                            } else {
-                                null
+                            when (content) {
+                                is ChatContent.Text -> {
+                                    com.chatfolio.domain.port.ChatMessage(
+                                        role = if (content.isUser) "user" else "model",
+                                        content = content.markdown,
+                                    )
+                                }
+                                is ChatContent.BatchTransactionConfirmCard -> {
+                                    val tradesString = content.trades.joinToString { "${it.action} ${it.shares} ${it.ticker}" }
+                                    com.chatfolio.domain.port.ChatMessage(
+                                        role = "model",
+                                        content =
+                                            "I have presented a confirmation card for the following pending trades: " +
+                                                "$tradesString. Awaiting user action.",
+                                    )
+                                }
+                                is ChatContent.HoldingsTableCard -> {
+                                    com.chatfolio.domain.port.ChatMessage(
+                                        role = "model",
+                                        content = "I have displayed the portfolio holdings table.",
+                                    )
+                                }
+                                is ChatContent.PortfolioSummaryCard -> {
+                                    com.chatfolio.domain.port.ChatMessage(
+                                        role = "model",
+                                        content = "I have displayed the global portfolio summary.",
+                                    )
+                                }
                             }
                         }
 
@@ -147,5 +168,11 @@ class ChatViewModel
                     _uiState.value = _uiState.value.copy(messages = errorMessages)
                 }
             }
+        }
+
+        fun cancelTransactions() {
+            val currentMessages = _uiState.value.messages.toMutableList()
+            currentMessages.add(ChatContent.Text(markdown = "❌ Cancelled pending trades.", isUser = true))
+            _uiState.value = _uiState.value.copy(messages = currentMessages)
         }
     }
