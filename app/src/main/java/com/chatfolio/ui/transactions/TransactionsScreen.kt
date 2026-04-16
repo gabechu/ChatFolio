@@ -58,12 +58,13 @@ fun TransactionsScreen(
                     SwipeableTransactionCard(
                         item = item,
                         onDelete = { viewModel.deleteTransaction(item.transaction) },
-                        onEdit = { newShares, newPrice ->
+                        onEdit = { newShares, newPrice, newCurrency ->
                             val updated =
                                 item.transaction.copy(
                                     shares = newShares,
                                     pricePerShare = newPrice,
                                     totalValue = newShares * newPrice,
+                                    currency = newCurrency,
                                 )
                             viewModel.updateTransaction(updated)
                         },

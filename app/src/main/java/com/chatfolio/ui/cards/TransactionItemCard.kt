@@ -83,7 +83,7 @@ fun TransactionItemCard(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "@ $${t.pricePerShare}",
+                    text = "@ ${t.pricePerShare} ${t.currency}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
