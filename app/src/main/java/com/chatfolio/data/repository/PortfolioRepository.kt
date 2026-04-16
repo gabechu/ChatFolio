@@ -20,6 +20,8 @@ class PortfolioRepository
     ) {
         fun getAllPortfolios(): Flow<List<PortfolioEntity>> = portfolioDao.getAllPortfolios()
 
+        fun getGlobalLedger(): Flow<List<com.chatfolio.data.local.entity.TransactionWithTicker>> = transactionDao.getGlobalLedger()
+
         suspend fun createPortfolio(name: String) {
             portfolioDao.insertPortfolio(PortfolioEntity(name = name))
         }
