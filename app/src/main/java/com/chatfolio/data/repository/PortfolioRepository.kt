@@ -126,6 +126,22 @@ class PortfolioRepository
             }
         }
 
+        suspend fun deleteTransaction(transaction: com.chatfolio.data.local.entity.TransactionEntity) {
+            db.withTransaction {
+                val holding = holdingDao.getHoldingById(transaction.holdingId) ?: return@withTransaction
+                transactionDao.deleteTransaction(transaction)
+                recalculateHoldingState(holding)
+            }
+        }
+
+        suspend fun updateTransaction(transaction: com.chatfolio.data.local.entity.TransactionEntity) {
+            db.withTransaction {
+                val holding = holdingDao.getHoldingById(transaction.holdingId) ?: return@withTransaction
+                transactionDao.updateTransaction(transaction)
+                recalculateHoldingState(holding)
+            }
+        }
+
         private suspend fun recalculateHoldingState(holding: com.chatfolio.data.local.entity.HoldingEntity) {
             val allTransactions = transactionDao.getAllTransactionsAsc(holding.id)
 
