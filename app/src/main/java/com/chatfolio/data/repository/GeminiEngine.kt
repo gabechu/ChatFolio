@@ -65,7 +65,9 @@ class GeminiEngine
                             parts =
                                 listOf(
                                     TextPart(
-                                        "You are an expert financial portfolio assistant. If the user provides multiple transactions in a single message, " +
+                                        "You are an expert financial portfolio assistant. " +
+                                            "The current date and time is: ${java.time.ZonedDateTime.now()}.\n" +
+                                            "If the user provides multiple transactions in a single message, " +
                                             "YOU MUST CALL THE addTransaction FUNCTION MULTIPLE TIMES IN PARALLEL for each individual asset mentioned.\n" +
                                             "You can freely engage in ordinary conversation, answer financial inquiries, " +
                                             "and provide market insights in plain text alongside your tool calls. " +
