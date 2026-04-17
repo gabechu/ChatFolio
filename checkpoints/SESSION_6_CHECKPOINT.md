@@ -5,6 +5,8 @@ Re-architected ChatFolio to break away from the single-screen paradigm. Built a 
 
 We also upgraded the ChatFolio AI interaction model from a static tool-parser to a recursive, agentic framework. This enables the LLM to perform multi-turn reasoning by dynamically querying the local Room database to answer complex analytical questions.
 
+Finally, we refactored the hard-coded single-tool recursion into a generic, vendor-agnostic agent loop. This eliminates conditional if-chains, makes adding new data tools trivial, and normalizes role constants so swapping LLM providers (e.g., OpenAI, Anthropic) requires only a new Engine implementation with zero domain changes.
+
 ## Key Accomplishments
 
 ### Architecture & Navigation
@@ -25,10 +27,16 @@ We also upgraded the ChatFolio AI interaction model from a static tool-parser to
 2.  **LlmEngine Refactoring:** Expanded `LlmEngine` to structurally support function-calling protocols natively through Gemini.
 3.  **Extended DAO Methods:** Added capabilities to the SQL DAO to support granular AI data inquiries, such as searching transactions by date ranges or stock tickers.
 
+### Generic Agent Loop & Vendor-Agnostic Refactor
+1.  **`ChatRole` Constants:** Introduced vendor-neutral role constants (`USER`, `ASSISTANT`, `TOOL_CALL`, `TOOL_RESULT`) in the domain port layer, decoupling conversation semantics from any specific LLM provider.
+2.  **`AgentTool` Data Class:** Bundles a tool's schema with its executor lambda, eliminating the need for hard-coded dispatch logic.
+3.  **Generic `agentLoop()` Function:** A standalone, pure function that replaces the conditional if-block. Loops while the LLM requests data tools, dispatches by name lookup, and exits when the LLM returns text/action tools or hits the `maxSteps` safety cap.
+4.  **Data vs Action Tool Classification:** Data tools (read-only, results fed back to LLM) loop automatically. Action tools (side-effects like addTransaction) pass through untouched for the caller to handle.
+
 ## Current State
 - The `wchu/feat-transaction-modifiers` branch holds UI enhancements.
-- The `wchu/feat-multi-turn-agent` branch contains the multi-turn recursive tool calling logic.
-- Clean KTlint enforcement and Unit tests verify standard operations.
+- The `wchu/feat-multi-turn-agent` branch contains the multi-turn recursive tool calling logic and the generic agent loop refactor.
+- Clean KTlint enforcement and Unit tests (9 total) verify standard operations.
 
 ## Next Session Priorities
 1.  Design and implement a cool app logo.

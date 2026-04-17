@@ -2,7 +2,9 @@ package com.chatfolio.domain.usecase
 
 import com.chatfolio.data.repository.MarketDataRepository
 import com.chatfolio.data.repository.PortfolioRepository
+import com.chatfolio.domain.port.AgentTool
 import com.chatfolio.domain.port.ChatMessage
+import com.chatfolio.domain.port.ChatRole
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmTool
 import com.chatfolio.domain.port.LlmToolParameter
@@ -52,7 +54,6 @@ class ChatInteraction
             private const val TOOL_SHOW_PORTFOLIO = "showPortfolio"
             private const val TOOL_DELETE_TRANSACTION = "deleteTransaction"
             private const val TOOL_UPDATE_TRANSACTION = "updateTransaction"
-            private const val TOOL_SEARCH_TRANSACTIONS = "searchTransactions"
         }
 
         private val addTransactionTool =
@@ -106,66 +107,65 @@ class ChatInteraction
                     ),
             )
 
+        /** Data tool: searches local DB and feeds results back to the LLM for reasoning. */
         private val searchTransactionsTool =
-            LlmTool(
-                name = TOOL_SEARCH_TRANSACTIONS,
-                description = "Searches the user's local database for historical transactions. Use this to count trades or find specific past trades based on date or ticker.",
-                parameters =
-                    listOf(
-                        LlmToolParameter("ticker", "STRING", "Optional ticker symbol to filter by"),
-                        LlmToolParameter("startDate", "NUMBER", "Optional start date in Unix Epoch milliseconds (e.g., 1704067200000)"),
-                        LlmToolParameter("endDate", "NUMBER", "Optional end date in Unix Epoch milliseconds"),
+            AgentTool(
+                schema =
+                    LlmTool(
+                        name = "searchTransactions",
+                        description =
+                            "Searches the user's local database for historical transactions. " +
+                                "Use this to count trades or find specific past trades based on date or ticker.",
+                        parameters =
+                            listOf(
+                                LlmToolParameter("ticker", "STRING", "Optional ticker symbol to filter by"),
+                                LlmToolParameter("startDate", "NUMBER", "Optional start date in Unix Epoch milliseconds (e.g., 1704067200000)"),
+                                LlmToolParameter("endDate", "NUMBER", "Optional end date in Unix Epoch milliseconds"),
+                            ),
                     ),
+                execute = { args ->
+                    val ticker = args["ticker"]?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+
+                    val startDateRaw = args["startDate"]
+                    val startDate = if (startDateRaw is Number) startDateRaw.toLong() else startDateRaw?.toString()?.toLongOrNull()
+
+                    val endDateRaw = args["endDate"]
+                    val endDate = if (endDateRaw is Number) endDateRaw.toLong() else endDateRaw?.toString()?.toLongOrNull()
+
+                    val results = portfolioRepository.searchTransactions(ticker, startDate, endDate)
+                    mapOf(
+                        "count" to results.size,
+                        "transactions" to
+                            results.take(50).joinToString("\n") {
+                                "[${it.transaction.date}] ${it.transaction.type} ${it.transaction.shares} of ${it.ticker} @ ${it.transaction.pricePerShare}"
+                            },
+                    )
+                },
             )
+
+        /** Action tool schemas — these are NOT executed inside the agent loop. */
+        private val actionTools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool)
+
+        /** Data tools — these ARE executed inside the agent loop and fed back to the LLM. */
+        private val dataTools = listOf(searchTransactionsTool)
 
         suspend fun sendMessage(
             messageText: String,
             conversationHistory: List<ChatMessage>,
         ): List<ChatInteractionResult> {
             try {
-                var currentHistory = conversationHistory + ChatMessage("user", content = messageText)
+                val currentHistory = (conversationHistory + ChatMessage(ChatRole.USER, content = messageText)).toMutableList()
 
-                var response =
-                    llmEngine.sendMessage(
+                // Generic agent loop handles all data-fetching recursion
+                val response =
+                    agentLoop(
+                        llmEngine = llmEngine,
                         messages = currentHistory,
-                        tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool, searchTransactionsTool),
+                        dataTools = dataTools,
+                        actionToolSchemas = actionTools,
                     )
 
-                var toolCalls = response.toolCalls
-
-                // MULTI-TURN AGENT LOOP: Intercept data requests, fetch SQL, and recurse to LLM
-                if (toolCalls != null && toolCalls.any { it.name == TOOL_SEARCH_TRANSACTIONS }) {
-                    val searchCall = toolCalls.first { it.name == TOOL_SEARCH_TRANSACTIONS }
-                    val ticker = searchCall.arguments["ticker"]?.toString()?.takeIf { it.isNotBlank() && it != "null" }
-
-                    val startDateRaw = searchCall.arguments["startDate"]
-                    val startDate = if (startDateRaw is Number) startDateRaw.toLong() else startDateRaw?.toString()?.toLongOrNull()
-
-                    val endDateRaw = searchCall.arguments["endDate"]
-                    val endDate = if (endDateRaw is Number) endDateRaw.toLong() else endDateRaw?.toString()?.toLongOrNull()
-
-                    val results = portfolioRepository.searchTransactions(ticker, startDate, endDate)
-                    val resultJsonMap =
-                        mapOf(
-                            "count" to results.size,
-                            "transactions" to
-                                results.take(50).joinToString("\n") {
-                                    "[${it.transaction.date}] ${it.transaction.type} ${it.transaction.shares} of ${it.ticker} @ ${it.transaction.pricePerShare}"
-                                },
-                        )
-
-                    // Inject the Model's Tool Request and our System's Tool Response directly into history
-                    currentHistory = currentHistory + ChatMessage(role = "model", functionCall = searchCall)
-                    currentHistory = currentHistory + ChatMessage(role = "function", functionResponseName = searchCall.name, functionResponse = resultJsonMap)
-
-                    // Re-fire LLM engine
-                    response =
-                        llmEngine.sendMessage(
-                            messages = currentHistory,
-                            tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool, searchTransactionsTool),
-                        )
-                    toolCalls = response.toolCalls
-                }
+                val toolCalls = response.toolCalls
 
                 // Route traffic directly to our isolated central ChatToolParsers
                 val results = mutableListOf<ChatInteractionResult>()

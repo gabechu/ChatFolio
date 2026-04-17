@@ -2,6 +2,7 @@ package com.chatfolio.data.repository
 
 import com.chatfolio.data.network.withRetry
 import com.chatfolio.domain.port.ChatMessage
+import com.chatfolio.domain.port.ChatRole
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmResponse
 import com.chatfolio.domain.port.LlmTool
@@ -114,7 +115,11 @@ class GeminiEngine
                                     parts.add(com.google.ai.client.generativeai.type.FunctionResponsePart(msg.functionResponseName, safeResponse))
                                 }
                                 Content(
-                                    role = if (msg.role == "model") "model" else "user",
+                                    role =
+                                        when (msg.role) {
+                                            ChatRole.ASSISTANT, ChatRole.TOOL_CALL -> "model"
+                                            else -> "user"
+                                        },
                                     parts = parts,
                                 )
                             }
