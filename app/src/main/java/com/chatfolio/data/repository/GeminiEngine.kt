@@ -2,6 +2,7 @@ package com.chatfolio.data.repository
 
 import com.chatfolio.data.network.withRetry
 import com.chatfolio.domain.port.ChatMessage
+import com.chatfolio.domain.port.ChatRole
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmResponse
 import com.chatfolio.domain.port.LlmTool
@@ -9,7 +10,10 @@ import com.chatfolio.domain.port.LlmToolParameter
 import com.chatfolio.domain.port.ToolCall
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.Content
+import com.google.ai.client.generativeai.type.FunctionCallPart
 import com.google.ai.client.generativeai.type.FunctionDeclaration
+import com.google.ai.client.generativeai.type.FunctionResponsePart
+import com.google.ai.client.generativeai.type.Part
 import com.google.ai.client.generativeai.type.Schema
 import com.google.ai.client.generativeai.type.TextPart
 import com.google.ai.client.generativeai.type.Tool
@@ -94,9 +98,29 @@ class GeminiEngine
                         // Convert our raw generic messages to Firebase Content objects
                         val firebaseMessages =
                             messages.map { msg ->
+                                val parts = mutableListOf<com.google.ai.client.generativeai.type.Part>()
+                                if (msg.content != null) {
+                                    parts.add(TextPart(msg.content))
+                                }
+                                if (msg.functionCall != null) {
+                                    parts.add(
+                                        com.google.ai.client.generativeai.type.FunctionCallPart(
+                                            msg.functionCall.name,
+                                            msg.functionCall.arguments.mapValues { it.value.toString() },
+                                        ),
+                                    )
+                                }
+                                if (msg.functionResponseName != null && msg.functionResponse != null) {
+                                    val safeResponse = org.json.JSONObject(msg.functionResponse)
+                                    parts.add(com.google.ai.client.generativeai.type.FunctionResponsePart(msg.functionResponseName, safeResponse))
+                                }
                                 Content(
-                                    role = if (msg.role == "user") "user" else "model",
-                                    parts = listOf(TextPart(msg.content)),
+                                    role =
+                                        when (msg.role) {
+                                            ChatRole.ASSISTANT, ChatRole.TOOL_CALL -> "model"
+                                            else -> "user"
+                                        },
+                                    parts = parts,
                                 )
                             }
 

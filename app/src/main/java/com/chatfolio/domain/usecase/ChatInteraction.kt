@@ -2,7 +2,9 @@ package com.chatfolio.domain.usecase
 
 import com.chatfolio.data.repository.MarketDataRepository
 import com.chatfolio.data.repository.PortfolioRepository
+import com.chatfolio.domain.port.AgentTool
 import com.chatfolio.domain.port.ChatMessage
+import com.chatfolio.domain.port.ChatRole
 import com.chatfolio.domain.port.LlmEngine
 import com.chatfolio.domain.port.LlmTool
 import com.chatfolio.domain.port.LlmToolParameter
@@ -105,17 +107,62 @@ class ChatInteraction
                     ),
             )
 
+        /** Data tool: searches local DB and feeds results back to the LLM for reasoning. */
+        private val searchTransactionsTool =
+            AgentTool(
+                schema =
+                    LlmTool(
+                        name = "searchTransactions",
+                        description =
+                            "Searches the user's local database for historical transactions. " +
+                                "Use this to count trades or find specific past trades based on date or ticker.",
+                        parameters =
+                            listOf(
+                                LlmToolParameter("ticker", "STRING", "Optional ticker symbol to filter by"),
+                                LlmToolParameter("startDate", "NUMBER", "Optional start date in Unix Epoch milliseconds (e.g., 1704067200000)"),
+                                LlmToolParameter("endDate", "NUMBER", "Optional end date in Unix Epoch milliseconds"),
+                            ),
+                    ),
+                execute = { args ->
+                    val ticker = args["ticker"]?.toString()?.takeIf { it.isNotBlank() && it != "null" }
+
+                    val startDateRaw = args["startDate"]
+                    val startDate = if (startDateRaw is Number) startDateRaw.toLong() else startDateRaw?.toString()?.toLongOrNull()
+
+                    val endDateRaw = args["endDate"]
+                    val endDate = if (endDateRaw is Number) endDateRaw.toLong() else endDateRaw?.toString()?.toLongOrNull()
+
+                    val results = portfolioRepository.searchTransactions(ticker, startDate, endDate)
+                    mapOf(
+                        "count" to results.size,
+                        "transactions" to
+                            results.take(50).joinToString("\n") {
+                                "[${it.transaction.date}] ${it.transaction.type} ${it.transaction.shares} of ${it.ticker} @ ${it.transaction.pricePerShare}"
+                            },
+                    )
+                },
+            )
+
+        /** Action tool schemas — these are NOT executed inside the agent loop. */
+        private val actionTools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool)
+
+        /** Data tools — these ARE executed inside the agent loop and fed back to the LLM. */
+        private val dataTools = listOf(searchTransactionsTool)
+
         suspend fun sendMessage(
             messageText: String,
             conversationHistory: List<ChatMessage>,
         ): List<ChatInteractionResult> {
             try {
-                val fullHistory = conversationHistory + ChatMessage("user", messageText)
+                val currentHistory = (conversationHistory + ChatMessage(ChatRole.USER, content = messageText)).toMutableList()
 
+                // Generic agent loop handles all data-fetching recursion
                 val response =
-                    llmEngine.sendMessage(
-                        messages = fullHistory,
-                        tools = listOf(addTransactionTool, showPortfolioTool, deleteTransactionTool, updateTransactionTool),
+                    agentLoop(
+                        llmEngine = llmEngine,
+                        messages = currentHistory,
+                        dataTools = dataTools,
+                        actionToolSchemas = actionTools,
                     )
 
                 val toolCalls = response.toolCalls
@@ -141,8 +188,9 @@ class ChatInteraction
                 }
 
                 // Standard text reply buffer
-                if (!response.textResponse.isNullOrBlank()) {
-                    results.add(ChatInteractionResult.TextReply(response.textResponse))
+                val textOut = response.textResponse
+                if (!textOut.isNullOrBlank()) {
+                    results.add(ChatInteractionResult.TextReply(textOut))
                 }
 
                 if (results.isEmpty()) {

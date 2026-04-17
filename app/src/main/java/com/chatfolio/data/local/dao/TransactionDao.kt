@@ -19,6 +19,20 @@ interface TransactionDao {
     )
     fun getGlobalLedger(): Flow<List<com.chatfolio.data.local.entity.TransactionWithTicker>>
 
+    @Query(
+        "SELECT transactions.*, holdings.ticker " +
+            "FROM transactions INNER JOIN holdings ON transactions.holdingId = holdings.id " +
+            "WHERE (:ticker IS NULL OR holdings.ticker = :ticker) " +
+            "AND (:startDate IS NULL OR transactions.date >= :startDate) " +
+            "AND (:endDate IS NULL OR transactions.date <= :endDate) " +
+            "ORDER BY transactions.date DESC",
+    )
+    suspend fun searchTransactions(
+        ticker: String?,
+        startDate: Long?,
+        endDate: Long?,
+    ): List<com.chatfolio.data.local.entity.TransactionWithTicker>
+
     @Query("SELECT * FROM transactions WHERE holdingId = :holdingId ORDER BY date ASC")
     suspend fun getAllTransactionsAsc(holdingId: Int): List<TransactionEntity>
 

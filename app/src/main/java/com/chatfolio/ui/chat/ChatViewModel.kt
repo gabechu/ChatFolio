@@ -80,14 +80,14 @@ class ChatViewModel
                 when (content) {
                     is ChatContent.Text -> {
                         com.chatfolio.domain.port.ChatMessage(
-                            role = if (content.isUser) "user" else "model",
+                            role = if (content.isUser) com.chatfolio.domain.port.ChatRole.USER else com.chatfolio.domain.port.ChatRole.ASSISTANT,
                             content = content.markdown,
                         )
                     }
                     is ChatContent.BatchTransactionConfirmCard -> {
                         val tradesString = content.trades.joinToString { "${it.action} ${it.shares} ${it.ticker}" }
                         com.chatfolio.domain.port.ChatMessage(
-                            role = "model",
+                            role = com.chatfolio.domain.port.ChatRole.ASSISTANT,
                             content =
                                 "I have presented a confirmation card for the following pending trades: " +
                                     "$tradesString. Awaiting user action.",
